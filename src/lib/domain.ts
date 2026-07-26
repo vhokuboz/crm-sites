@@ -1,0 +1,249 @@
+import type { Prospect, ProspectStatus } from './database.types'
+
+/* ---------------------------------------------------------------- datas ---
+   next_action_at e prospected_at sao `date` no Postgres: chegam como
+   "AAAA-MM-DD". Comparar via new Date(string) interpretaria UTC e erraria o dia
+   no nosso fuso, entao tudo aqui e comparacao de string no formato ISO.
+*/
+
+export function todayISO(): string {
+  const d = new Date()
+  const mes = String(d.getMonth() + 1).padStart(2, '0')
+  const dia = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mes}-${dia}`
+}
+
+export function addDaysISO(days: number, from = todayISO()): string {
+  const [a, m, d] = from.split('-').map(Number)
+  const date = new Date(a, m - 1, d + days)
+  const mes = String(date.getMonth() + 1).padStart(2, '0')
+  const dia = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${mes}-${dia}`
+}
+
+/** Dias entre hoje e uma data ISO. Negativo = passado. */
+export function daysFromToday(iso: string): number {
+  const [a1, m1, d1] = todayISO().split('-').map(Number)
+  const [a2, m2, d2] = iso.split('-').map(Number)
+  const ms = Date.UTC(a2, m2 - 1, d2) - Date.UTC(a1, m1 - 1, d1)
+  return Math.round(ms / 86_400_000)
+}
+
+export function formatDateBR(iso: string | null): string {
+  if (!iso) return '—'
+  const [a, m, d] = iso.slice(0, 10).split('-')
+  return `${d}/${m}/${a.slice(2)}`
+}
+
+/** "hoje", "ontem", "em 3 dias", "há 2 dias" — o texto que a fila do dia usa. */
+export function relativeDay(iso: string): string {
+  const diff = daysFromToday(iso)
+  if (diff === 0) return 'hoje'
+  if (diff === 1) return 'amanhã'
+  if (diff === -1) return 'ontem'
+  if (diff > 1) return `em ${diff} dias`
+  return `há ${Math.abs(diff)} dias`
+}
+
+/* ------------------------------------------------------- presenca digital ---
+   O argumento de venda deste negocio e a distancia entre o quanto o cliente e
+   bem avaliado e o quao fraca e a presenca digital dele. Para medir isso a
+   interface precisa transformar `website_quality` -- que e texto livre escrito
+   na prospeccao -- em uma nota comparavel com a do Google.
+*/
+
+export type Presence = {
+  /** 0 a 5, na mesma escala da nota do Google. null = nao avaliado. */
+  score: number | null
+  label: string
+}
+
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+export function readPresence(p: Prospect): Presence {
+  const q = p.website_quality ? normalize(p.website_quality) : ''
+
+  if (q.includes('sem site')) return { score: 0, label: 'sem site' }
+  if (q.includes('facebook')) return { score: 1, label: 'só rede social' }
+  if (q.includes('pagina em branco')) return { score: 1, label: 'site quebrado' }
+  if (q.includes('problematic')) return { score: 1, label: 'site problemático' }
+  if (q.includes('datado') || q.includes('fraco')) return { score: 2, label: 'site datado' }
+  if (q.includes('generico') || q.includes('basico')) return { score: 2, label: 'site genérico' }
+  if (q) return { score: 3, label: p.website_quality as string }
+  if (p.website) return { score: 4, label: 'site ativo' }
+  return { score: null, label: 'presença não avaliada' }
+}
+
+export type Gap = {
+  reputation: number | null
+  presence: number | null
+  /** reputacao - presenca. Quanto maior, mais forte o argumento de venda. */
+  size: number | null
+  presenceLabel: string
+}
+
+export function readGap(p: Prospect): Gap {
+  const presence = readPresence(p)
+  const reputation = p.google_rating
+  return {
+    reputation,
+    presence: presence.score,
+    presenceLabel: presence.label,
+    size:
+      reputation !== null && presence.score !== null ? reputation - presence.score : null,
+  }
+}
+
+/**
+ * Ordena por forca do argumento. Quem tem nota do Google e presenca fraca vem
+ * primeiro; quem ainda nao tem nota entra depois, ordenado pela presenca, porque
+ * inventar uma reputacao media para eles seria fabricar dado que nao existe.
+ */
+export function byOpportunity(a: Prospect, b: Prospect): number {
+  const ga = readGap(a)
+  const gb = readGap(b)
+  if (ga.size !== null && gb.size !== null) return gb.size - ga.size
+  if (ga.size !== null) return -1
+  if (gb.size !== null) return 1
+  return (ga.presence ?? 9) - (gb.presence ?? 9)
+}
+
+/* ------------------------------------------------------------- contatos ---
+   `contact` e texto livre e as vezes traz dois numeros separados por barra.
+*/
+
+export type Phone = { raw: string; digits: string; isMobile: boolean }
+
+export function parsePhones(contact: string | null): Phone[] {
+  if (!contact) return []
+  const matches = contact.match(/\(?\d{2}\)?[\s-]?\d{4,5}-?\d{4}/g) ?? []
+  return matches.map((raw) => {
+    const digits = raw.replace(/\D/g, '')
+    return { raw: raw.trim(), digits, isMobile: digits.length === 11 }
+  })
+}
+
+export function whatsappUrl(contact: string | null, message?: string | null): string | null {
+  const mobile = parsePhones(contact).find((p) => p.isMobile)
+  if (!mobile) return null
+  const base = `https://wa.me/55${mobile.digits}`
+  return message ? `${base}?text=${encodeURIComponent(message)}` : base
+}
+
+/**
+ * O campo `instagram` e texto livre da prospeccao: as vezes traz um perfil, as
+ * vezes uma observacao ("Não vinculado"), as vezes o perfil com um comentario
+ * junto ("@dr.rodrigocatto (ativo, ~2,4 mil seguidores)"). So o handle entra na
+ * URL -- o resto seria colado no link e levaria a um perfil inexistente.
+ */
+export function instagramUrl(value: string | null): string | null {
+  if (!value) return null
+  const v = value.trim()
+  const handle = v.match(/^@([A-Za-z0-9._]+)/)
+  if (handle) return `https://instagram.com/${handle[1]}`
+  const url = v.match(/instagram\.com\/([A-Za-z0-9._]+)/)
+  if (url) return `https://instagram.com/${url[1]}`
+  return null
+}
+
+export function websiteUrl(value: string | null): string | null {
+  if (!value) return null
+  const v = value.trim()
+  if (!v || v.toLowerCase() === 'sem site') return null
+  return v.startsWith('http') ? v : `https://${v}`
+}
+
+/**
+ * O protótipo gerado pelo agente. Mesma normalizacao do site do cliente, porque
+ * `landing_page_url` as vezes chega sem esquema ("fulano.pages.dev").
+ */
+export function prototypeUrl(p: Prospect): string | null {
+  return websiteUrl(p.landing_page_url)
+}
+
+/**
+ * E-mail tem coluna propria, mas registros antigos as vezes trazem o endereco
+ * dentro de `contact`, que e texto livre. A coluna manda; o texto livre e so o
+ * ultimo recurso para nao perder o que ja foi anotado.
+ */
+export function readEmail(p: Prospect): string | null {
+  const direct = p.email?.trim()
+  if (direct) return direct
+  const found = p.contact?.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/)
+  return found ? found[0] : null
+}
+
+/* --------------------------------------------------------------- status ---- */
+
+export const FUNNEL: ProspectStatus[] = [
+  'novo',
+  'prototipado',
+  'contatado',
+  'respondeu',
+  'negociando',
+  'fechado',
+]
+
+export const CLOSED: ProspectStatus[] = ['perdido', 'descartado']
+
+export const ALL_STATUS: ProspectStatus[] = [...FUNNEL, ...CLOSED]
+
+export const STATUS_LABEL: Record<ProspectStatus, string> = {
+  novo: 'Novo',
+  prototipado: 'Prototipado',
+  contatado: 'Contatado',
+  respondeu: 'Respondeu',
+  negociando: 'Negociando',
+  fechado: 'Fechado',
+  perdido: 'Perdido',
+  descartado: 'Descartado',
+}
+
+/** Peso visual crescente ao longo do funil; encerrados ficam apagados. */
+export const STATUS_TONE: Record<ProspectStatus, string> = {
+  novo: 'bg-rule/60 text-ink',
+  prototipado: 'bg-deep/8 text-deep',
+  contatado: 'bg-deep/15 text-deep',
+  respondeu: 'bg-deep/30 text-deep',
+  negociando: 'bg-gold/25 text-gold',
+  fechado: 'bg-deep text-card',
+  perdido: 'bg-seal/12 text-seal',
+  descartado: 'bg-rule/40 text-muted',
+}
+
+export function isOpen(p: Prospect): boolean {
+  return !['fechado', 'perdido', 'descartado'].includes(p.status)
+}
+
+/* ----------------------------------------------------------- fila do dia --- */
+
+export type Queue = {
+  overdue: Prospect[]
+  today: Prospect[]
+  unscheduled: Prospect[]
+}
+
+export function buildQueue(prospects: Prospect[]): Queue {
+  const open = prospects.filter(isOpen)
+  const hoje = todayISO()
+  return {
+    overdue: open
+      .filter((p) => p.next_action_at !== null && p.next_action_at < hoje)
+      .sort((a, b) => (a.next_action_at ?? '').localeCompare(b.next_action_at ?? '')),
+    today: open.filter((p) => p.next_action_at === hoje),
+    // Quem ja tem protótipo pronto encabeça a fila sem data: o trabalho caro ja
+    // foi feito e so falta a abordagem. Dentro de cada grupo vale a lacuna.
+    unscheduled: open
+      .filter((p) => p.next_action_at === null)
+      .sort((a, b) => {
+        const pa = a.status === 'prototipado' ? 0 : 1
+        const pb = b.status === 'prototipado' ? 0 : 1
+        return pa !== pb ? pa - pb : byOpportunity(a, b)
+      }),
+  }
+}

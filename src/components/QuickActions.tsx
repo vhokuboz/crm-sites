@@ -1,0 +1,183 @@
+import { useState } from 'react'
+import type { Prospect } from '../lib/database.types'
+import { instagramUrl, prototypeUrl, readEmail, websiteUrl, whatsappUrl } from '../lib/domain'
+
+/*
+  A fila do dia se resolve em cliques curtos: abrir o protótipo para conferir,
+  puxar o WhatsApp com a abordagem pronta, espiar o Instagram, copiar o e-mail.
+  Cada ação vira um ícone; o que não existe no registro simplesmente não aparece,
+  para o card não mentir sobre dado que ainda não foi levantado.
+*/
+
+type Props = {
+  prospect: Prospect
+  /** `sm` no card da fila, `md` na ficha lateral. */
+  size?: 'sm' | 'md'
+}
+
+export function QuickActions({ prospect: p, size = 'sm' }: Props) {
+  const [copied, setCopied] = useState(false)
+
+  const proto = prototypeUrl(p)
+  const wa = whatsappUrl(p.contact, p.approach_message)
+  const ig = instagramUrl(p.instagram)
+  const site = websiteUrl(p.website)
+  const email = readEmail(p)
+
+  async function copyEmail() {
+    if (!email) return
+    await navigator.clipboard.writeText(email)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1800)
+  }
+
+  if (!proto && !wa && !ig && !site && !email) return null
+
+  const box = size === 'md' ? 'h-9 w-9' : 'h-8 w-8'
+  const icon = size === 'md' ? 18 : 16
+
+  return (
+    <div className="flex items-center gap-1">
+      {proto && (
+        <IconLink href={proto} label="Abrir o protótipo do site" box={box} highlight>
+          <PrototypeIcon size={icon} />
+        </IconLink>
+      )}
+      {wa && (
+        <IconLink href={wa} label="Abrir WhatsApp com a abordagem" box={box}>
+          <WhatsAppIcon size={icon} />
+        </IconLink>
+      )}
+      {ig && (
+        <IconLink href={ig} label="Abrir o Instagram" box={box}>
+          <InstagramIcon size={icon} />
+        </IconLink>
+      )}
+      {email && (
+        <button
+          type="button"
+          onClick={copyEmail}
+          title={copied ? 'E-mail copiado' : `Copiar e-mail (${email})`}
+          aria-label={copied ? 'E-mail copiado' : `Copiar e-mail ${email}`}
+          className={`grid ${box} place-items-center rounded-sm border transition-colors ${
+            copied
+              ? 'border-deep bg-deep text-card'
+              : 'border-rule text-ink hover:bg-paper'
+          }`}
+        >
+          {copied ? <CheckIcon size={icon} /> : <MailIcon size={icon} />}
+        </button>
+      )}
+      {site && (
+        <IconLink href={site} label="Abrir o site atual do cliente" box={box}>
+          <GlobeIcon size={icon} />
+        </IconLink>
+      )}
+    </div>
+  )
+}
+
+function IconLink({
+  href,
+  label,
+  box,
+  highlight = false,
+  children,
+}: {
+  href: string
+  label: string
+  box: string
+  highlight?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      /* Sem isto, arrastar o icone dentro de um card do funil arrastaria a URL. */
+      draggable={false}
+      title={label}
+      aria-label={label}
+      className={`grid ${box} place-items-center rounded-sm border transition-colors ${
+        highlight
+          ? 'border-deep/40 bg-deep/10 text-deep hover:bg-deep hover:text-card'
+          : 'border-rule text-ink hover:bg-paper'
+      }`}
+    >
+      {children}
+    </a>
+  )
+}
+
+/* ------------------------------------------------------------------ icones ---
+   Desenhados aqui em vez de virem de um pacote: sao cinco, e uma dependencia de
+   biblioteca de icones custaria mais no bundle do que o SVG inteiro deles.
+*/
+
+type IconProps = { size: number }
+
+const stroke = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.6,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+}
+
+/** Janela de navegador: o protótipo publicado. */
+function PrototypeIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M6.5 6.5h.01M9 6.5h.01" />
+      <path d="M8 13.5h8M8 16.5h5" />
+    </svg>
+  )
+}
+
+function WhatsAppIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden fill="currentColor">
+      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.28-1.38a9.9 9.9 0 0 0 4.76 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 1.82c2.16 0 4.19.84 5.72 2.37a8.03 8.03 0 0 1 2.37 5.72c0 4.46-3.63 8.09-8.09 8.09a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.1.81.83-3.02-.2-.31a8.16 8.16 0 0 1-1.25-4.34c0-4.46 3.63-8.09 8.2-8.09Zm-3.6 4.1c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.6.13.17 1.76 2.68 4.26 3.76.6.26 1.06.41 1.42.53.6.19 1.14.16 1.57.1.48-.07 1.48-.6 1.68-1.19.21-.58.21-1.08.15-1.19-.06-.1-.23-.16-.48-.29-.25-.12-1.48-.73-1.71-.81-.23-.09-.4-.13-.56.12-.17.25-.64.81-.79.98-.14.16-.29.19-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.15-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.13-.15.17-.25.25-.41.08-.17.04-.31-.02-.44-.06-.12-.55-1.36-.77-1.86-.2-.48-.4-.42-.55-.42l-.47-.01Z" />
+    </svg>
+  )
+}
+
+function InstagramIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="M17.2 6.8h.01" />
+    </svg>
+  )
+}
+
+function MailIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3.5 7 8.5 6 8.5-6" />
+    </svg>
+  )
+}
+
+function GlobeIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18Z" />
+    </svg>
+  )
+}
+
+function CheckIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
+      <path d="m5 12.5 4.5 4.5L19 7" />
+    </svg>
+  )
+}

@@ -1,0 +1,72 @@
+@import 'tailwindcss';
+
+/*
+  Direcao visual: ficha de campo.
+  O trabalho aqui e de rua -- olhar um comercio de Bauru, medir reputacao contra
+  presenca digital e bater na porta. A paleta vem dai: papel levemente esverdeado,
+  tinta verde-escura, ocre de estrela do Google e vermelho de carimbo para o que atrasou.
+*/
+@theme {
+  --color-paper: #edefe8;
+  --color-card: #fbfbf7;
+  --color-ink: #17211c;
+  --color-muted: #6a746c;
+  --color-rule: #d5d8ce;
+  --color-seal: #a8342a;
+  --color-gold: #b5811a;
+  --color-deep: #2c4a3e;
+
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Foco sempre visivel: o app inteiro e operavel por teclado. */
+  :focus-visible {
+    outline: 2px solid var(--color-deep);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-gold) 35%, transparent);
+  }
+}
+
+@layer utilities {
+  /* Etiqueta estrutural: usada em cabecalhos de secao e rotulos de dado. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .rule-top {
+    border-top: 1px solid var(--color-rule);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
