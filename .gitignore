@@ -6,3 +6,5 @@ dist
 *.log
 .claude
 tsconfig.tsbuildinfo
+.vercel
+.env*
