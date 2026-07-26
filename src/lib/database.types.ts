@@ -7,11 +7,14 @@ export type Database = {
     Tables: {
       prospects: {
         Row: {
+          address: string | null
           approach_message: string | null
           city: string
           contact: string | null
           created_at: string
           email: string | null
+          google_cid: string | null
+          google_place_id: string | null
           google_rating: number | null
           google_reviews_count: number | null
           id: string
@@ -21,6 +24,7 @@ export type Database = {
           name: string
           next_action_at: string | null
           notes: string | null
+          preview_images: string[] | null
           problem: string | null
           prospected_at: string
           segment: string
@@ -31,11 +35,14 @@ export type Database = {
           website_quality: string | null
         }
         Insert: {
+          address?: string | null
           approach_message?: string | null
           city?: string
           contact?: string | null
           created_at?: string
           email?: string | null
+          google_cid?: string | null
+          google_place_id?: string | null
           google_rating?: number | null
           google_reviews_count?: number | null
           id?: string
@@ -45,6 +52,7 @@ export type Database = {
           name: string
           next_action_at?: string | null
           notes?: string | null
+          preview_images?: string[] | null
           problem?: string | null
           prospected_at?: string
           segment: string

@@ -266,6 +266,26 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
                 Ao salvar, o status passa de Novo para Prototipado.
               </p>
             )}
+            {p.preview_images && p.preview_images.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {p.preview_images.map((src) => (
+                  <a
+                    key={src}
+                    href={src}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="block overflow-hidden rounded-sm border border-rule"
+                  >
+                    <img
+                      src={src}
+                      alt={`Preview do protótipo de ${p.name}`}
+                      loading="lazy"
+                      className="aspect-video w-full object-cover object-top transition-opacity hover:opacity-90"
+                    />
+                  </a>
+                ))}
+              </div>
+            )}
           </section>
 
           <section>
