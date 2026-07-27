@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import type { Prospect, ProspectUpdate } from '../lib/database.types'
 import {
+  RISK_LABEL,
+  RISK_TONE,
   STATUS_LABEL,
   STATUS_TONE,
   addDaysISO,
+  inactivityRisk,
+  instagramLastPostLabel,
   prototypeUrl,
   relativeDay,
 } from '../lib/domain'
@@ -21,6 +25,8 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
   const [copied, setCopied] = useState(false)
   const proto = prototypeUrl(p)
   const overdue = tone === 'overdue'
+  const igLastPost = instagramLastPostLabel(p.instagram_last_post_at)
+  const risk = inactivityRisk(p)
 
   async function copyApproach() {
     if (!p.approach_message) return
@@ -54,6 +60,14 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
             className="text-left font-display text-[15px] font-semibold leading-snug tracking-tight hover:underline"
           >
             {p.name}
+            {igLastPost && (
+              <span
+                className={`ml-1 font-mono text-[11px] font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
+                title={`Última postagem no Instagram: ${igLastPost}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
+              >
+                · {igLastPost}
+              </span>
+            )}
           </button>
           <p className="mt-0.5 font-mono text-[11px] text-muted">
             {p.segment}

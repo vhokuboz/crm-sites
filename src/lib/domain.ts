@@ -45,6 +45,22 @@ export function relativeDay(iso: string): string {
   return `há ${Math.abs(diff)} dias`
 }
 
+/**
+ * "21d" / "6m" / "3y" — tempo desde a ultima postagem no Instagram, em formato
+ * compacto pro card. Diferente de `relativeDay`, aqui o campo e timestamptz
+ * (tem hora), entao `new Date(string)` e seguro.
+ */
+export function instagramLastPostLabel(value: string | null): string | null {
+  if (!value) return null
+  const then = new Date(value).getTime()
+  if (Number.isNaN(then)) return null
+  const days = Math.max(0, Math.floor((Date.now() - then) / 86_400_000))
+  if (days < 30) return `${days}d`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${months}m`
+  return `${Math.floor(days / 365)}y`
+}
+
 /* ------------------------------------------------------- presenca digital ---
    O argumento de venda deste negocio e a distancia entre o quanto o cliente e
    bem avaliado e o quao fraca e a presenca digital dele. Para medir isso a
@@ -97,6 +113,64 @@ export function readGap(p: Prospect): Gap {
     size:
       reputation !== null && presence.score !== null ? reputation - presence.score : null,
   }
+}
+
+/**
+ * Segmentos que vivem de venda direta/recorrente e prova social constante
+ * (doceria, salao, loja) sentem o silencio no Instagram rapido -- parar de
+ * postar e sinal real de negocio esfriando. Ja profissao liberal de baixa
+ * recorrencia (advogado, dentista, fisio) pode nao postar por anos e seguir
+ * a todo vapor, entao silencio la e evidencia fraca, nunca risco "alto".
+ */
+const HIGH_DIGITAL_DEPENDENCY_KEYWORDS = [
+  'doceria',
+  'confeitaria',
+  'salao',
+  'estetica',
+  'brecho',
+  'boutique',
+  'restaurante',
+  'cafeteria',
+  'loja',
+  'padaria',
+]
+
+function isHighDigitalDependency(segment: string): boolean {
+  const s = normalize(segment)
+  return HIGH_DIGITAL_DEPENDENCY_KEYWORDS.some((k) => s.includes(k))
+}
+
+export type InactivityRisk = 'alto' | 'medio' | 'baixo'
+
+export const RISK_LABEL: Record<InactivityRisk, string> = {
+  alto: 'risco alto',
+  medio: 'risco médio',
+  baixo: 'risco baixo',
+}
+
+/** Classe de cor pro mesmo tom usado em `STATUS_TONE` (seal = alerta, gold = atencao). */
+export const RISK_TONE: Record<InactivityRisk, string> = {
+  alto: 'text-seal',
+  medio: 'text-gold',
+  baixo: 'text-muted',
+}
+
+/**
+ * `null` quando nao ha `instagram_last_post_at` pra avaliar -- sem dado,
+ * sem risco calculado, em vez de assumir o pior.
+ */
+export function inactivityRisk(p: Prospect): InactivityRisk | null {
+  if (!p.instagram_last_post_at) return null
+  const then = new Date(p.instagram_last_post_at).getTime()
+  if (Number.isNaN(then)) return null
+  const days = Math.max(0, Math.floor((Date.now() - then) / 86_400_000))
+
+  if (isHighDigitalDependency(p.segment)) {
+    if (days >= 365) return 'alto'
+    if (days >= 150) return 'medio'
+    return 'baixo'
+  }
+  return days >= 730 ? 'medio' : 'baixo'
 }
 
 /**

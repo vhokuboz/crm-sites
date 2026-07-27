@@ -20,6 +20,7 @@ export type Database = {
           google_reviews_count: number | null
           id: string
           instagram: string | null
+          instagram_last_post_at: string | null
           landing_page_url: string | null
           last_contacted_at: string | null
           link_bio: string | null
@@ -51,6 +52,7 @@ export type Database = {
           google_reviews_count?: number | null
           id?: string
           instagram?: string | null
+          instagram_last_post_at?: string | null
           landing_page_url?: string | null
           last_contacted_at?: string | null
           link_bio?: string | null
