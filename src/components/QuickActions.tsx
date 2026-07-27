@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Prospect } from '../lib/database.types'
 import { instagramUrl, prototypeUrl, readEmail, websiteUrl, whatsappUrl } from '../lib/domain'
+import { ImagePreviewModal } from './ImagePreviewModal'
 
 /*
   A fila do dia se resolve em cliques curtos: abrir o protótipo para conferir,
@@ -17,12 +18,14 @@ type Props = {
 
 export function QuickActions({ prospect: p, size = 'sm' }: Props) {
   const [copied, setCopied] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const proto = prototypeUrl(p)
   const wa = whatsappUrl(p.contact, p.approach_message)
   const ig = instagramUrl(p.instagram)
   const site = websiteUrl(p.website)
   const email = readEmail(p)
+  const images = p.preview_images ?? []
 
   async function copyEmail() {
     if (!email) return
@@ -31,13 +34,31 @@ export function QuickActions({ prospect: p, size = 'sm' }: Props) {
     setTimeout(() => setCopied(false), 1800)
   }
 
-  if (!proto && !wa && !ig && !site && !email) return null
+  if (!proto && !wa && !ig && !site && !email && images.length === 0) return null
 
   const box = size === 'md' ? 'h-9 w-9' : 'h-8 w-8'
   const icon = size === 'md' ? 18 : 16
 
   return (
     <div className="flex items-center gap-1">
+      {images.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setPreviewOpen(true)}
+          title="Ver previews do protótipo"
+          aria-label="Ver previews do protótipo"
+          className={`grid ${box} place-items-center rounded-sm border border-rule text-ink transition-colors hover:bg-paper`}
+        >
+          <ImagesIcon size={icon} />
+        </button>
+      )}
+      {previewOpen && (
+        <ImagePreviewModal
+          images={images}
+          title={`Previews de ${p.name}`}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
       {proto && (
         <IconLink href={proto} label="Abrir o protótipo do site" box={box} highlight>
           <PrototypeIcon size={icon} />
@@ -170,6 +191,18 @@ function GlobeIcon({ size }: IconProps) {
       <circle cx="12" cy="12" r="9" />
       <path d="M3 12h18" />
       <path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18Z" />
+    </svg>
+  )
+}
+
+/** Pilha de imagens: previews do protótipo. */
+function ImagesIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
+      <rect x="3" y="7" width="14" height="14" rx="2" />
+      <path d="M7 7V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2" />
+      <circle cx="8" cy="12" r="1.5" />
+      <path d="m5 19 3.5-4 3 3L15 14l2 3" />
     </svg>
   )
 }

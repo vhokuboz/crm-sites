@@ -12,6 +12,7 @@ import {
   whatsappUrl,
 } from '../lib/domain'
 import { GapMeter } from './GapMeter'
+import { ImagePreviewModal } from './ImagePreviewModal'
 import { QuickActions } from './QuickActions'
 
 type Props = {
@@ -27,6 +28,7 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
   const [email, setEmail] = useState(p.email ?? '')
   const [landing, setLanding] = useState(p.landing_page_url ?? '')
   const [saved, setSaved] = useState(false)
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null)
 
   useEffect(() => {
     setNotes(p.notes ?? '')
@@ -268,12 +270,11 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
             )}
             {p.preview_images && p.preview_images.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
-                {p.preview_images.map((src) => (
-                  <a
+                {p.preview_images.map((src, i) => (
+                  <button
                     key={src}
-                    href={src}
-                    target="_blank"
-                    rel="noreferrer noopener"
+                    type="button"
+                    onClick={() => setPreviewIndex(i)}
                     className="block overflow-hidden rounded-sm border border-rule"
                   >
                     <img
@@ -282,9 +283,17 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
                       loading="lazy"
                       className="aspect-video w-full object-cover object-top transition-opacity hover:opacity-90"
                     />
-                  </a>
+                  </button>
                 ))}
               </div>
+            )}
+            {previewIndex !== null && (
+              <ImagePreviewModal
+                images={p.preview_images ?? []}
+                initialIndex={previewIndex}
+                title={`Previews de ${p.name}`}
+                onClose={() => setPreviewIndex(null)}
+              />
             )}
           </section>
 
