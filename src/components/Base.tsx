@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react'
 import type { Prospect } from '../lib/database.types'
-import { ALL_STATUS, STATUS_LABEL, STATUS_TONE, formatDateBR, readGap } from '../lib/domain'
+import {
+  ALL_STATUS,
+  STATUS_LABEL,
+  STATUS_TONE,
+  byOpportunity,
+  formatDateBR,
+  readGap,
+} from '../lib/domain'
 import { QuickActions } from './QuickActions'
 
 type Props = {
@@ -11,17 +18,29 @@ type Props = {
 export function Base({ prospects, onOpen }: Props) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<string>('todos')
+  const [segment, setSegment] = useState<string | null>(null)
+
+  /* Segmentos ordenados por frequência: os mais comuns viram os primeiros
+     pills, os que aparecem só uma vez não empurram os úteis pra fora da tela. */
+  const segments = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const p of prospects) counts.set(p.segment, (counts.get(p.segment) ?? 0) + 1)
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])
+  }, [prospects])
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return prospects.filter((p) => {
-      if (status !== 'todos' && p.status !== status) return false
-      if (!q) return true
-      return [p.name, p.segment, p.problem, p.notes, p.website_quality]
-        .filter(Boolean)
-        .some((v) => (v as string).toLowerCase().includes(q))
-    })
-  }, [prospects, query, status])
+    return prospects
+      .filter((p) => {
+        if (status !== 'todos' && p.status !== status) return false
+        if (segment && p.segment !== segment) return false
+        if (!q) return true
+        return [p.name, p.segment, p.problem, p.notes, p.website_quality]
+          .filter(Boolean)
+          .some((v) => (v as string).toLowerCase().includes(q))
+      })
+      .sort(byOpportunity)
+  }, [prospects, query, status, segment])
 
   return (
     <div className="space-y-4">
@@ -34,26 +53,39 @@ export function Base({ prospects, onOpen }: Props) {
           className="min-w-60 flex-1 rounded-sm border border-rule bg-card px-3 py-2 text-sm"
           aria-label="Buscar prospects"
         />
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="rounded-sm border border-rule bg-card px-3 py-2 font-mono text-xs"
-          aria-label="Filtrar por status"
-        >
-          <option value="todos">Todos os status</option>
-          {ALL_STATUS.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABEL[s]}
-            </option>
-          ))}
-        </select>
         <span className="font-mono text-[11px] tabular-nums text-muted">
           {rows.length} de {prospects.length}
         </span>
       </div>
 
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Pill active={status === 'todos'} onClick={() => setStatus('todos')}>
+          Todos
+        </Pill>
+        {ALL_STATUS.map((s) => (
+          <Pill
+            key={s}
+            active={status === s}
+            onClick={() => setStatus(status === s ? 'todos' : s)}
+            tone={STATUS_TONE[s]}
+          >
+            {STATUS_LABEL[s]}
+          </Pill>
+        ))}
+      </div>
+
+      {segments.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {segments.map(([seg, n]) => (
+            <Pill key={seg} active={segment === seg} onClick={() => setSegment(segment === seg ? null : seg)}>
+              {seg} <span className="text-muted">{n}</span>
+            </Pill>
+          ))}
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-sm border border-rule">
-        <table className="w-full min-w-[860px] border-collapse bg-card text-left">
+        <table className="w-full min-w-[940px] border-collapse bg-card text-left">
           <thead>
             <tr className="border-b border-rule">
               <Th>Nome</Th>
@@ -61,6 +93,7 @@ export function Base({ prospects, onOpen }: Props) {
               <Th>Status</Th>
               <Th>Nota</Th>
               <Th>Presença</Th>
+              <Th>Oportunidade</Th>
               <Th>Próxima ação</Th>
               <Th>Ações</Th>
             </tr>
@@ -93,6 +126,16 @@ export function Base({ prospects, onOpen }: Props) {
                   <td className="px-3 py-2.5 font-mono text-[11px] text-muted">
                     {gap.presenceLabel}
                   </td>
+                  <td className="px-3 py-2.5 font-mono text-[11px] font-semibold tabular-nums">
+                    {gap.size !== null ? (
+                      <span className={gap.size > 0 ? 'text-gold' : 'text-muted'}>
+                        {gap.size > 0 ? '+' : ''}
+                        {gap.size.toFixed(1)}
+                      </span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2.5 font-mono text-[11px] tabular-nums text-muted">
                     {formatDateBR(p.next_action_at)}
                   </td>
@@ -121,5 +164,31 @@ function Th({ children }: { children: string }) {
     <th scope="col" className="px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-muted">
       {children}
     </th>
+  )
+}
+
+function Pill({
+  active,
+  onClick,
+  tone,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  tone?: string
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-2.5 py-1 font-mono text-[11px] transition-colors ${
+        active
+          ? `border-transparent ${tone ?? 'bg-ink text-paper'}`
+          : 'border-rule text-muted hover:bg-paper hover:text-ink'
+      }`}
+    >
+      {children}
+    </button>
   )
 }
