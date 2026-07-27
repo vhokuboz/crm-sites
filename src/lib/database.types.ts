@@ -13,6 +13,7 @@ export type Database = {
           contact: string | null
           created_at: string
           email: string | null
+          facebook: string | null
           google_cid: string | null
           google_place_id: string | null
           google_rating: number | null
@@ -21,6 +22,7 @@ export type Database = {
           instagram: string | null
           landing_page_url: string | null
           last_contacted_at: string | null
+          link_bio: string | null
           name: string
           next_action_at: string | null
           notes: string | null
@@ -33,6 +35,7 @@ export type Database = {
           updated_at: string
           website: string | null
           website_quality: string | null
+          whatsapp: string | null
         }
         Insert: {
           address?: string | null
@@ -41,6 +44,7 @@ export type Database = {
           contact?: string | null
           created_at?: string
           email?: string | null
+          facebook?: string | null
           google_cid?: string | null
           google_place_id?: string | null
           google_rating?: number | null
@@ -49,6 +53,7 @@ export type Database = {
           instagram?: string | null
           landing_page_url?: string | null
           last_contacted_at?: string | null
+          link_bio?: string | null
           name: string
           next_action_at?: string | null
           notes?: string | null
@@ -61,6 +66,7 @@ export type Database = {
           updated_at?: string
           website?: string | null
           website_quality?: string | null
+          whatsapp?: string | null
         }
         Update: Partial<Database['public']['Tables']['prospects']['Insert']>
         Relationships: []

@@ -128,11 +128,45 @@ export function parsePhones(contact: string | null): Phone[] {
   })
 }
 
-export function whatsappUrl(contact: string | null, message?: string | null): string | null {
-  const mobile = parsePhones(contact).find((p) => p.isMobile)
-  if (!mobile) return null
-  const base = `https://wa.me/55${mobile.digits}`
+/**
+ * `whatsapp` e o numero ja confirmado como canal real (extraido de link
+ * wa.me/api.whatsapp), com DDI incluso. Na ausencia dele, o celular achado em
+ * `contact` -- texto livre do Maps -- serve de fallback, mas precisa do 55.
+ */
+export function whatsappDigits(p: Prospect): string | null {
+  const direct = p.whatsapp?.replace(/\D/g, '')
+  if (direct) return direct
+  const mobile = parsePhones(p.contact).find((ph) => ph.isMobile)
+  return mobile ? `55${mobile.digits}` : null
+}
+
+export function whatsappUrl(p: Prospect, message?: string | null): string | null {
+  const digits = whatsappDigits(p)
+  if (!digits) return null
+  const base = `https://wa.me/${digits}`
   return message ? `${base}?text=${encodeURIComponent(message)}` : base
+}
+
+/**
+ * `facebook` e texto livre: pode chegar como handle, URL sem esquema ou URL
+ * completa. O perfil exige login pra leitura, entao aqui so normalizamos o
+ * link -- nao ha o que raspar como no Instagram.
+ */
+export function facebookUrl(value: string | null): string | null {
+  if (!value) return null
+  const v = value.trim()
+  if (!v) return null
+  if (v.startsWith('http')) return v
+  if (v.includes('facebook.com')) return `https://${v}`
+  return `https://facebook.com/${v.replace(/^@/, '')}`
+}
+
+/** `link_bio` (Linktree e afins) as vezes chega sem esquema. */
+export function linkBioUrl(value: string | null): string | null {
+  if (!value) return null
+  const v = value.trim()
+  if (!v) return null
+  return v.startsWith('http') ? v : `https://${v}`
 }
 
 /**

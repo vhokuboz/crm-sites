@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import type { Prospect } from '../lib/database.types'
-import { instagramUrl, prototypeUrl, readEmail, websiteUrl, whatsappUrl } from '../lib/domain'
+import {
+  facebookUrl,
+  instagramUrl,
+  linkBioUrl,
+  prototypeUrl,
+  readEmail,
+  websiteUrl,
+  whatsappUrl,
+} from '../lib/domain'
 import { ImagePreviewModal } from './ImagePreviewModal'
 
 /*
@@ -21,9 +29,11 @@ export function QuickActions({ prospect: p, size = 'sm' }: Props) {
   const [previewOpen, setPreviewOpen] = useState(false)
 
   const proto = prototypeUrl(p)
-  const wa = whatsappUrl(p.contact, p.approach_message)
+  const wa = whatsappUrl(p, p.approach_message)
   const ig = instagramUrl(p.instagram)
   const site = websiteUrl(p.website)
+  const fb = facebookUrl(p.facebook)
+  const bio = linkBioUrl(p.link_bio)
   const email = readEmail(p)
   const images = p.preview_images ?? []
 
@@ -34,7 +44,7 @@ export function QuickActions({ prospect: p, size = 'sm' }: Props) {
     setTimeout(() => setCopied(false), 1800)
   }
 
-  if (!proto && !wa && !ig && !site && !email && images.length === 0) return null
+  if (!proto && !wa && !ig && !site && !fb && !bio && !email && images.length === 0) return null
 
   const box = size === 'md' ? 'h-9 w-9' : 'h-8 w-8'
   const icon = size === 'md' ? 18 : 16
@@ -92,6 +102,16 @@ export function QuickActions({ prospect: p, size = 'sm' }: Props) {
       {site && (
         <IconLink href={site} label="Abrir o site atual do cliente" box={box}>
           <GlobeIcon size={icon} />
+        </IconLink>
+      )}
+      {fb && (
+        <IconLink href={fb} label="Abrir o Facebook" box={box}>
+          <FacebookIcon size={icon} />
+        </IconLink>
+      )}
+      {bio && (
+        <IconLink href={bio} label="Abrir o link na bio" box={box}>
+          <LinkIcon size={icon} />
         </IconLink>
       )}
     </div>
@@ -203,6 +223,25 @@ function ImagesIcon({ size }: IconProps) {
       <path d="M7 7V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2" />
       <circle cx="8" cy="12" r="1.5" />
       <path d="m5 19 3.5-4 3 3L15 14l2 3" />
+    </svg>
+  )
+}
+
+function FacebookIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden fill="currentColor">
+      <path d="M14.5 22v-8.4h2.8l.42-3.27H14.5V8.2c0-.95.26-1.6 1.62-1.6h1.74V3.7c-.3-.04-1.33-.13-2.53-.13-2.5 0-4.22 1.53-4.22 4.34v2.42H8.3v3.27h2.8V22h3.4Z" />
+    </svg>
+  )
+}
+
+/** Elo de corrente: agregador de links (Linktree e afins). */
+function LinkIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
+      <path d="M9.5 14.5 14.5 9.5" />
+      <path d="M11 6.5 12.4 5.1a3.5 3.5 0 0 1 4.95 4.95L15.9 11.5" />
+      <path d="M13 17.5 11.6 18.9a3.5 3.5 0 0 1-4.95-4.95L8.1 12.5" />
     </svg>
   )
 }

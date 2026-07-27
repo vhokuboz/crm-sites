@@ -3,8 +3,10 @@ import type { Prospect, ProspectStatus, ProspectUpdate } from '../lib/database.t
 import {
   ALL_STATUS,
   STATUS_LABEL,
+  facebookUrl,
   formatDateBR,
   instagramUrl,
+  linkBioUrl,
   parsePhones,
   prototypeUrl,
   readEmail,
@@ -71,9 +73,11 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     }
   }
 
-  const wa = whatsappUrl(p.contact, p.approach_message)
+  const wa = whatsappUrl(p, p.approach_message)
   const ig = instagramUrl(p.instagram)
   const site = websiteUrl(p.website)
+  const fb = facebookUrl(p.facebook)
+  const bio = linkBioUrl(p.link_bio)
   const proto = prototypeUrl(p)
   const mail = readEmail(p)
   const phones = parsePhones(p.contact)
@@ -210,6 +214,34 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
                       </a>
                     ) : (
                       <span className="text-muted">{p.website}</span>
+                    )}
+                  </dd>
+                </div>
+              )}
+              {p.facebook && (
+                <div className="flex gap-2">
+                  <dt className="w-20 text-muted">facebook</dt>
+                  <dd className="min-w-0 break-all">
+                    {fb ? (
+                      <a href={fb} target="_blank" rel="noreferrer noopener" className="hover:underline">
+                        {p.facebook}
+                      </a>
+                    ) : (
+                      <span className="text-muted">{p.facebook}</span>
+                    )}
+                  </dd>
+                </div>
+              )}
+              {p.link_bio && (
+                <div className="flex gap-2">
+                  <dt className="w-20 text-muted">link na bio</dt>
+                  <dd className="min-w-0 break-all">
+                    {bio ? (
+                      <a href={bio} target="_blank" rel="noreferrer noopener" className="hover:underline">
+                        {p.link_bio}
+                      </a>
+                    ) : (
+                      <span className="text-muted">{p.link_bio}</span>
                     )}
                   </dd>
                 </div>
