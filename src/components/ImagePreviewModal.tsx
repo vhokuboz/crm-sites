@@ -31,7 +31,7 @@ export function ImagePreviewModal({ images, initialIndex = 0, title, onClose }: 
   }, [hasMultiple, onClose])
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6">
       <div className="absolute inset-0 bg-ink/70" onClick={onClose} aria-hidden />
 
       <div

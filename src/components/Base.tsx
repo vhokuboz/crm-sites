@@ -8,6 +8,7 @@ import {
   formatDateBR,
   readGap,
 } from '../lib/domain'
+import { GapMeter } from './GapMeter'
 import { QuickActions } from './QuickActions'
 
 type Props = {
@@ -84,78 +85,123 @@ export function Base({ prospects, onOpen }: Props) {
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-sm border border-rule">
-        <table className="w-full min-w-[940px] border-collapse bg-card text-left">
-          <thead>
-            <tr className="border-b border-rule">
-              <Th>Nome</Th>
-              <Th>Segmento</Th>
-              <Th>Status</Th>
-              <Th>Nota</Th>
-              <Th>Presença</Th>
-              <Th>Oportunidade</Th>
-              <Th>Próxima ação</Th>
-              <Th>Ações</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((p) => {
-              const gap = readGap(p)
-              return (
-                <tr
-                  key={p.id}
-                  onClick={() => onOpen(p)}
-                  className="cursor-pointer border-b border-rule/60 last:border-0 hover:bg-paper/60"
-                >
-                  <td className="px-3 py-2.5 text-[13px] font-medium">{p.name}</td>
-                  <td className="px-3 py-2.5 font-mono text-[11px] text-muted">{p.segment}</td>
-                  <td className="px-3 py-2.5">
-                    <span
-                      className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_TONE[p.status]}`}
-                    >
-                      {STATUS_LABEL[p.status]}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2.5 font-mono text-[11px] tabular-nums">
-                    {gap.reputation !== null ? (
-                      <span className="text-gold">★ {gap.reputation.toFixed(1)}</span>
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 font-mono text-[11px] text-muted">
-                    {gap.presenceLabel}
-                  </td>
-                  <td className="px-3 py-2.5 font-mono text-[11px] font-semibold tabular-nums">
-                    {gap.size !== null ? (
-                      <span className={gap.size > 0 ? 'text-gold' : 'text-muted'}>
-                        {gap.size > 0 ? '+' : ''}
-                        {gap.size.toFixed(1)}
-                      </span>
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 font-mono text-[11px] tabular-nums text-muted">
-                    {formatDateBR(p.next_action_at)}
-                  </td>
-                  {/* Os atalhos não devem abrir a ficha por baixo deles. */}
-                  <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
-                    <QuickActions prospect={p} />
-                  </td>
+      {rows.length === 0 ? (
+        <p className="rounded-sm border border-dashed border-rule bg-card px-4 py-8 text-center text-[13px] text-muted">
+          Nada encontrado com esses filtros.
+        </p>
+      ) : (
+        <>
+          {/* Tabela: só cabe sem scroll horizontal a partir de telas maiores. */}
+          <div className="hidden overflow-x-auto rounded-sm border border-rule md:block">
+            <table className="w-full min-w-[940px] border-collapse bg-card text-left">
+              <thead>
+                <tr className="border-b border-rule">
+                  <Th>Nome</Th>
+                  <Th>Segmento</Th>
+                  <Th>Status</Th>
+                  <Th>Nota</Th>
+                  <Th>Presença</Th>
+                  <Th>Oportunidade</Th>
+                  <Th>Próxima ação</Th>
+                  <Th>Ações</Th>
                 </tr>
-              )
-            })}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {rows.map((p) => {
+                  const gap = readGap(p)
+                  return (
+                    <tr
+                      key={p.id}
+                      onClick={() => onOpen(p)}
+                      className="cursor-pointer border-b border-rule/60 last:border-0 hover:bg-paper/60"
+                    >
+                      <td className="px-3 py-2.5 text-[13px] font-medium">{p.name}</td>
+                      <td className="px-3 py-2.5 font-mono text-[11px] text-muted">{p.segment}</td>
+                      <td className="px-3 py-2.5">
+                        <span
+                          className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_TONE[p.status]}`}
+                        >
+                          {STATUS_LABEL[p.status]}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-[11px] tabular-nums">
+                        {gap.reputation !== null ? (
+                          <span className="text-gold">★ {gap.reputation.toFixed(1)}</span>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-[11px] text-muted">
+                        {gap.presenceLabel}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-[11px] font-semibold tabular-nums">
+                        {gap.size !== null ? (
+                          <span className={gap.size > 0 ? 'text-gold' : 'text-muted'}>
+                            {gap.size > 0 ? '+' : ''}
+                            {gap.size.toFixed(1)}
+                          </span>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-[11px] tabular-nums text-muted">
+                        {formatDateBR(p.next_action_at)}
+                      </td>
+                      {/* Os atalhos não devem abrir a ficha por baixo deles. */}
+                      <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                        <QuickActions prospect={p} />
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
 
-        {rows.length === 0 && (
-          <p className="bg-card px-4 py-8 text-center text-[13px] text-muted">
-            Nada encontrado com esses filtros.
-          </p>
-        )}
-      </div>
+          {/* Cards: mesma linha vira um bloco empilhável, sem depender de scroll lateral. */}
+          <div className="space-y-2 md:hidden">
+            {rows.map((p) => (
+              <Row key={p.id} prospect={p} onOpen={onOpen} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
+  )
+}
+
+function Row({ prospect: p, onOpen }: { prospect: Prospect; onOpen: (p: Prospect) => void }) {
+  return (
+    <article
+      onClick={() => onOpen(p)}
+      className="cursor-pointer rounded-sm border border-rule bg-card p-3 transition-colors active:bg-paper/60"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[14px] font-medium">{p.name}</p>
+          <p className="mt-0.5 truncate font-mono text-[11px] text-muted">{p.segment}</p>
+        </div>
+        <span
+          className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_TONE[p.status]}`}
+        >
+          {STATUS_LABEL[p.status]}
+        </span>
+      </div>
+
+      <div className="mt-2.5">
+        <GapMeter prospect={p} compact />
+      </div>
+
+      <div className="mt-2.5 rule-top pt-2.5">
+        <p className="font-mono text-[11px] text-muted">
+          próxima ação {formatDateBR(p.next_action_at)}
+        </p>
+        {/* Os atalhos não devem abrir a ficha por baixo deles. */}
+        <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+          <QuickActions prospect={p} />
+        </div>
+      </div>
+    </article>
   )
 }
 

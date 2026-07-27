@@ -50,7 +50,7 @@ export function QuickActions({ prospect: p, size = 'sm' }: Props) {
   const icon = size === 'md' ? 18 : 16
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-1">
       {images.length > 0 && (
         <button
           type="button"

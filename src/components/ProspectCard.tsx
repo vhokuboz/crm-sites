@@ -82,35 +82,38 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
         <GapMeter prospect={p} compact />
       </div>
 
-      <div className="mt-3.5 flex flex-wrap items-center gap-1.5 rule-top pt-3">
-        <QuickActions prospect={p} />
+      <div className="mt-3.5 flex flex-wrap items-start gap-3 rule-top pt-3">
+        <div className="min-w-0 flex-1">
+          <QuickActions prospect={p} />
+        </div>
 
-        <span className="flex-1" />
+        {/* Empilhado e ancorado à direita no mobile; em linha a partir de sm. */}
+        <div className="ml-auto flex flex-col items-end gap-1.5 sm:flex-row sm:items-center">
+          {p.approach_message && (
+            <button
+              onClick={copyApproach}
+              className="rounded-sm bg-ink px-2.5 py-1.5 font-mono text-[11px] font-medium text-paper transition-opacity hover:opacity-85"
+            >
+              {copied ? 'Copiado' : 'Copiar abordagem'}
+            </button>
+          )}
 
-        {p.approach_message && (
+          {p.status === 'novo' && proto ? (
+            <button
+              onClick={() => void onUpdate(p.id, { status: 'prototipado' })}
+              className="rounded-sm border border-deep/40 px-2.5 py-1.5 font-mono text-[11px] text-deep transition-colors hover:bg-deep/10"
+            >
+              Marcar prototipado
+            </button>
+          ) : null}
+
           <button
-            onClick={copyApproach}
-            className="rounded-sm bg-ink px-2.5 py-1.5 font-mono text-[11px] font-medium text-paper transition-opacity hover:opacity-85"
+            onClick={markContacted}
+            className="rounded-sm border border-rule px-2.5 py-1.5 font-mono text-[11px] text-ink transition-colors hover:bg-paper"
           >
-            {copied ? 'Copiado' : 'Copiar abordagem'}
+            Marcar contato
           </button>
-        )}
-
-        {p.status === 'novo' && proto ? (
-          <button
-            onClick={() => void onUpdate(p.id, { status: 'prototipado' })}
-            className="rounded-sm border border-deep/40 px-2.5 py-1.5 font-mono text-[11px] text-deep transition-colors hover:bg-deep/10"
-          >
-            Marcar prototipado
-          </button>
-        ) : null}
-
-        <button
-          onClick={markContacted}
-          className="rounded-sm border border-rule px-2.5 py-1.5 font-mono text-[11px] text-ink transition-colors hover:bg-paper"
-        >
-          Marcar contato
-        </button>
+        </div>
       </div>
     </article>
   )

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Prospect, ProspectStatus, ProspectUpdate } from '../lib/database.types'
-import { CLOSED, FUNNEL, STATUS_LABEL, readGap, relativeDay } from '../lib/domain'
+import { ALL_STATUS, CLOSED, FUNNEL, STATUS_LABEL, readGap, relativeDay } from '../lib/domain'
 import { QuickActions } from './QuickActions'
 
 type Props = {
@@ -24,7 +24,7 @@ export function Funil({ prospects, onUpdate, onOpen }: Props) {
   return (
     <div className="space-y-8">
       <p className="text-[13px] text-muted">
-        Arraste um card para mudar o status, ou use o seletor na ficha.
+        Arraste um card para mudar o status, ou use o seletor no próprio card.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -58,6 +58,7 @@ export function Funil({ prospects, onUpdate, onOpen }: Props) {
                     key={p.id}
                     prospect={p}
                     onOpen={onOpen}
+                    onUpdate={onUpdate}
                     onDragStart={() => setDragging(p.id)}
                     onDragEnd={() => setDragging(null)}
                     dimmed={dragging === p.id}
@@ -95,12 +96,14 @@ export function Funil({ prospects, onUpdate, onOpen }: Props) {
 function Card({
   prospect: p,
   onOpen,
+  onUpdate,
   onDragStart,
   onDragEnd,
   dimmed,
 }: {
   prospect: Prospect
   onOpen: (p: Prospect) => void
+  onUpdate: (id: string, patch: ProspectUpdate) => Promise<boolean>
   onDragStart: () => void
   onDragEnd: () => void
   dimmed: boolean
@@ -133,6 +136,20 @@ function Card({
       {p.next_action_at && (
         <p className="mt-1 font-mono text-[10px] text-muted">{relativeDay(p.next_action_at)}</p>
       )}
+
+      {/* Arrastar não existe em touch: este seletor é o jeito de mudar de coluna no celular. */}
+      <select
+        value={p.status}
+        onChange={(e) => void onUpdate(p.id, { status: e.target.value as ProspectStatus })}
+        aria-label={`Mudar status de ${p.name}`}
+        className="mt-2 w-full rounded-sm border border-rule bg-paper px-1.5 py-1 font-mono text-[10px] text-muted"
+      >
+        {ALL_STATUS.map((s) => (
+          <option key={s} value={s}>
+            {STATUS_LABEL[s]}
+          </option>
+        ))}
+      </select>
 
       <div className="mt-2">
         <QuickActions prospect={p} />

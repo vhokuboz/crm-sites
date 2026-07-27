@@ -98,7 +98,7 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
         tabIndex={-1}
         className="relative flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-rule bg-paper"
       >
-        <header className="sticky top-0 z-10 border-b border-rule bg-paper/95 px-6 py-4 backdrop-blur">
+        <header className="sticky top-0 z-10 border-b border-rule bg-paper/95 px-4 py-4 backdrop-blur sm:px-6">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="eyebrow">{p.segment} · {p.city}</p>
@@ -119,7 +119,7 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
           </div>
         </header>
 
-        <div className="space-y-7 px-6 py-6">
+        <div className="space-y-7 px-4 py-6 sm:px-6">
           <section>
             <h3 className="eyebrow">Lacuna digital</h3>
             <div className="mt-3 rounded-sm border border-rule bg-card p-4">

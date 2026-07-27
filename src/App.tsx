@@ -48,7 +48,7 @@ function Crm({ email }: { email: string }) {
   return (
     <div className="min-h-dvh">
       <header className="border-b border-rule bg-card/60">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-6 py-4">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6 sm:py-4">
           <div>
             <p className="eyebrow">Bauru · SP</p>
             <h1 className="font-display text-xl font-semibold tracking-tight">Prospecção</h1>
@@ -83,7 +83,7 @@ function Crm({ email }: { email: string }) {
 
       {error && (
         <div role="alert" className="border-b border-seal/30 bg-seal/8">
-          <div className="mx-auto flex max-w-6xl items-center gap-3 px-6 py-2.5">
+          <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
             <p className="flex-1 text-[13px] text-seal">{error}</p>
             <button onClick={dismissError} className="font-mono text-[11px] text-seal underline">
               dispensar
@@ -92,7 +92,7 @@ function Crm({ email }: { email: string }) {
         </div>
       )}
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         {loading ? (
           <p className="eyebrow">Carregando prospects</p>
         ) : prospects.length === 0 ? (
