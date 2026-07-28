@@ -46,11 +46,23 @@ export function relativeDay(iso: string): string {
 }
 
 /**
- * "21d" / "6m" / "3y" — tempo desde a ultima postagem no Instagram, em formato
- * compacto pro card. Diferente de `relativeDay`, aqui o campo e timestamptz
- * (tem hora), entao `new Date(string)` e seguro.
+ * Maior data entre o último post do Instagram e a última review no Google —
+ * sinal de atividade mais recente, venha de onde vier. `google_last_review_at`
+ * complementa quando o lead não tem Instagram.
  */
-export function instagramLastPostLabel(value: string | null): string | null {
+function lastSocialActivityAt(p: Prospect): string | null {
+  const ig = p.instagram_last_post_at
+  const gr = p.google_last_review_at
+  if (ig && gr) return ig > gr ? ig : gr
+  return ig ?? gr
+}
+
+/**
+ * "21d" / "6m" / "3y" — tempo desde a ultima atividade social (Instagram ou
+ * Google), em formato compacto pro card.
+ */
+export function lastSocialActivityLabel(p: Prospect): string | null {
+  const value = lastSocialActivityAt(p)
   if (!value) return null
   const then = new Date(value).getTime()
   if (Number.isNaN(then)) return null
@@ -156,12 +168,13 @@ export const RISK_TONE: Record<InactivityRisk, string> = {
 }
 
 /**
- * `null` quando nao ha `instagram_last_post_at` pra avaliar -- sem dado,
- * sem risco calculado, em vez de assumir o pior.
+ * `null` quando nao ha Instagram nem review do Google pra avaliar -- sem
+ * dado, sem risco calculado, em vez de assumir o pior.
  */
 export function inactivityRisk(p: Prospect): InactivityRisk | null {
-  if (!p.instagram_last_post_at) return null
-  const then = new Date(p.instagram_last_post_at).getTime()
+  const value = lastSocialActivityAt(p)
+  if (!value) return null
+  const then = new Date(value).getTime()
   if (Number.isNaN(then)) return null
   const days = Math.max(0, Math.floor((Date.now() - then) / 86_400_000))
 
@@ -272,6 +285,21 @@ export function websiteUrl(value: string | null): string | null {
  */
 export function prototypeUrl(p: Prospect): string | null {
   return websiteUrl(p.landing_page_url)
+}
+
+/** `source_url` já chega como link completo (Maps): só cai fora string vazia. */
+export function sourceUrl(p: Prospect): string | null {
+  return p.source_url?.trim() || null
+}
+
+/**
+ * `null` quando o negócio está `OPERATIONAL` ou ainda não foi checado -- só
+ * interessa o alerta de fechado, o resto é ruído no card.
+ */
+export function businessClosedLabel(p: Prospect): string | null {
+  if (p.business_status === 'CLOSED_PERMANENTLY') return 'fechado permanentemente'
+  if (p.business_status === 'CLOSED_TEMPORARILY') return 'fechado temporariamente'
+  return null
 }
 
 /**

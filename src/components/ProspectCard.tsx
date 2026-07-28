@@ -7,10 +7,11 @@ import {
   STATUS_TONE,
   addDaysISO,
   inactivityRisk,
-  instagramLastPostLabel,
+  lastSocialActivityLabel,
   prototypeUrl,
   relativeDay,
 } from '../lib/domain'
+import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { GapMeter } from './GapMeter'
 import { QuickActions } from './QuickActions'
 
@@ -25,7 +26,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
   const [copied, setCopied] = useState(false)
   const proto = prototypeUrl(p)
   const overdue = tone === 'overdue'
-  const igLastPost = instagramLastPostLabel(p.instagram_last_post_at)
+  const lastActivity = lastSocialActivityLabel(p)
   const risk = inactivityRisk(p)
 
   async function copyApproach() {
@@ -60,12 +61,12 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
             className="text-left font-display text-[15px] font-semibold leading-snug tracking-tight hover:underline"
           >
             {p.name}
-            {igLastPost && (
+            {lastActivity && (
               <span
                 className={`ml-1 font-mono text-[11px] font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
-                title={`Última postagem no Instagram: ${igLastPost}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
+                title={`Última atividade social: ${lastActivity}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
               >
-                · {igLastPost}
+                · {lastActivity}
               </span>
             )}
           </button>
@@ -81,11 +82,14 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
             )}
           </p>
         </div>
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_TONE[p.status]}`}
-        >
-          {STATUS_LABEL[p.status]}
-        </span>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span
+            className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_TONE[p.status]}`}
+          >
+            {STATUS_LABEL[p.status]}
+          </span>
+          <BusinessStatusBadge prospect={p} />
+        </div>
       </div>
 
       {p.problem && (

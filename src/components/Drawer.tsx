@@ -13,6 +13,7 @@ import {
   websiteUrl,
   whatsappUrl,
 } from '../lib/domain'
+import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { GapMeter } from './GapMeter'
 import { ImagePreviewModal } from './ImagePreviewModal'
 import { QuickActions } from './QuickActions'
@@ -29,6 +30,8 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
   const [approach, setApproach] = useState(p.approach_message ?? '')
   const [email, setEmail] = useState(p.email ?? '')
   const [landing, setLanding] = useState(p.landing_page_url ?? '')
+  const [status, setStatus] = useState(p.status)
+  const [nextAction, setNextAction] = useState(p.next_action_at ?? '')
   const [saved, setSaved] = useState(false)
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
 
@@ -37,7 +40,9 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     setApproach(p.approach_message ?? '')
     setEmail(p.email ?? '')
     setLanding(p.landing_page_url ?? '')
-  }, [p.id, p.notes, p.approach_message, p.email, p.landing_page_url])
+    setStatus(p.status)
+    setNextAction(p.next_action_at ?? '')
+  }, [p.id, p.notes, p.approach_message, p.email, p.landing_page_url, p.status, p.next_action_at])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -52,7 +57,9 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     notes !== (p.notes ?? '') ||
     approach !== (p.approach_message ?? '') ||
     email !== (p.email ?? '') ||
-    landing !== (p.landing_page_url ?? '')
+    landing !== (p.landing_page_url ?? '') ||
+    status !== p.status ||
+    nextAction !== (p.next_action_at ?? '')
 
   async function saveText() {
     const patch: ProspectUpdate = {
@@ -60,11 +67,13 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
       approach_message: approach || null,
       email: email.trim() || null,
       landing_page_url: landing.trim() || null,
+      status,
+      next_action_at: nextAction || null,
     }
     // Registrar o protótipo é o próprio ato de sair de "novo": quem tem página
     // publicada já está pronto para a abordagem, e reclassificar na mão seria
     // uma segunda etapa fácil de esquecer.
-    if (patch.landing_page_url && p.status === 'novo') patch.status = 'prototipado'
+    if (patch.landing_page_url && status === 'novo') patch.status = 'prototipado'
 
     const ok = await onUpdate(p.id, patch)
     if (ok) {
@@ -105,6 +114,7 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
               <h2 className="mt-1 font-display text-2xl font-semibold leading-tight tracking-tight">
                 {p.name}
               </h2>
+              <BusinessStatusBadge prospect={p} className="mt-1.5" />
             </div>
             <button
               onClick={onClose}
@@ -130,10 +140,8 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
           <section className="grid grid-cols-2 gap-4">
             <Field label="Status">
               <select
-                value={p.status}
-                onChange={(e) =>
-                  void onUpdate(p.id, { status: e.target.value as ProspectStatus })
-                }
+                value={status}
+                onChange={(e) => setStatus(e.target.value as ProspectStatus)}
                 className="w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs"
               >
                 {ALL_STATUS.map((s) => (
@@ -147,10 +155,8 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
             <Field label="Próxima ação">
               <input
                 type="date"
-                value={p.next_action_at ?? ''}
-                onChange={(e) =>
-                  void onUpdate(p.id, { next_action_at: e.target.value || null })
-                }
+                value={nextAction}
+                onChange={(e) => setNextAction(e.target.value)}
                 className="w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs"
               />
             </Field>
@@ -295,7 +301,7 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
                 </a>
               </p>
             )}
-            {p.status === 'novo' && landing.trim() && (
+            {status === 'novo' && landing.trim() && (
               <p className="font-mono text-[11px] text-deep">
                 Ao salvar, o status passa de Novo para Prototipado.
               </p>

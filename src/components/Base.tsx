@@ -9,9 +9,10 @@ import {
   byOpportunity,
   formatDateBR,
   inactivityRisk,
-  instagramLastPostLabel,
+  lastSocialActivityLabel,
   readGap,
 } from '../lib/domain'
+import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { GapMeter } from './GapMeter'
 import { QuickActions } from './QuickActions'
 
@@ -113,7 +114,7 @@ export function Base({ prospects, onOpen }: Props) {
               <tbody>
                 {rows.map((p) => {
                   const gap = readGap(p)
-                  const igLastPost = instagramLastPostLabel(p.instagram_last_post_at)
+                  const lastActivity = lastSocialActivityLabel(p)
                   const risk = inactivityRisk(p)
                   return (
                     <tr
@@ -123,22 +124,25 @@ export function Base({ prospects, onOpen }: Props) {
                     >
                       <td className="px-3 py-2.5 text-[13px] font-medium">
                         {p.name}
-                        {igLastPost && (
+                        {lastActivity && (
                           <span
                             className={`ml-1 font-mono text-[11px] font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
-                            title={`Última postagem no Instagram: ${igLastPost}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
+                            title={`Última atividade social: ${lastActivity}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
                           >
-                            · {igLastPost}
+                            · {lastActivity}
                           </span>
                         )}
                       </td>
                       <td className="px-3 py-2.5 font-mono text-[11px] text-muted">{p.segment}</td>
                       <td className="px-3 py-2.5">
-                        <span
-                          className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_TONE[p.status]}`}
-                        >
-                          {STATUS_LABEL[p.status]}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span
+                            className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_TONE[p.status]}`}
+                          >
+                            {STATUS_LABEL[p.status]}
+                          </span>
+                          <BusinessStatusBadge prospect={p} />
+                        </div>
                       </td>
                       <td className="px-3 py-2.5 font-mono text-[11px] tabular-nums">
                         {gap.reputation !== null ? (
@@ -187,7 +191,7 @@ export function Base({ prospects, onOpen }: Props) {
 }
 
 function Row({ prospect: p, onOpen }: { prospect: Prospect; onOpen: (p: Prospect) => void }) {
-  const igLastPost = instagramLastPostLabel(p.instagram_last_post_at)
+  const lastActivity = lastSocialActivityLabel(p)
   const risk = inactivityRisk(p)
   return (
     <article
@@ -198,22 +202,25 @@ function Row({ prospect: p, onOpen }: { prospect: Prospect; onOpen: (p: Prospect
         <div className="min-w-0">
           <p className="truncate text-[14px] font-medium">
             {p.name}
-            {igLastPost && (
+            {lastActivity && (
               <span
                 className={`ml-1 font-mono text-[11px] font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
-                title={`Última postagem no Instagram: ${igLastPost}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
+                title={`Última atividade social: ${lastActivity}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
               >
-                · {igLastPost}
+                · {lastActivity}
               </span>
             )}
           </p>
           <p className="mt-0.5 truncate font-mono text-[11px] text-muted">{p.segment}</p>
         </div>
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_TONE[p.status]}`}
-        >
-          {STATUS_LABEL[p.status]}
-        </span>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span
+            className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_TONE[p.status]}`}
+          >
+            {STATUS_LABEL[p.status]}
+          </span>
+          <BusinessStatusBadge prospect={p} />
+        </div>
       </div>
 
       <div className="mt-2.5">

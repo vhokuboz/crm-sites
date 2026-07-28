@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Prospect, ProspectStatus, ProspectUpdate } from '../lib/database.types'
 import { ALL_STATUS, CLOSED, FUNNEL, STATUS_LABEL, readGap, relativeDay } from '../lib/domain'
+import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { QuickActions } from './QuickActions'
 
 type Props = {
@@ -27,7 +28,7 @@ export function Funil({ prospects, onUpdate, onOpen }: Props) {
         Arraste um card para mudar o status, ou use o seletor no próprio card.
       </p>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {FUNNEL.map((status) => {
           const items = prospects.filter((p) => p.status === status)
           return (
@@ -133,6 +134,8 @@ function Card({
         <span className="truncate">{gap.presenceLabel}</span>
       </div>
 
+      <BusinessStatusBadge prospect={p} className="mt-1.5" />
+
       {p.next_action_at && (
         <p className="mt-1 font-mono text-[10px] text-muted">{relativeDay(p.next_action_at)}</p>
       )}
@@ -152,7 +155,7 @@ function Card({
       </select>
 
       <div className="mt-2">
-        <QuickActions prospect={p} />
+        <QuickActions prospect={p} bare />
       </div>
     </article>
   )

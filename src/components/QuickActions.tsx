@@ -6,6 +6,7 @@ import {
   linkBioUrl,
   prototypeUrl,
   readEmail,
+  sourceUrl,
   websiteUrl,
   whatsappUrl,
 } from '../lib/domain'
@@ -22,9 +23,11 @@ type Props = {
   prospect: Prospect
   /** `sm` no card da fila, `md` na ficha lateral. */
   size?: 'sm' | 'md'
+  /** Sem caixa/outline: só o ícone como informação visual, ainda clicável. Usado no card do funil. */
+  bare?: boolean
 }
 
-export function QuickActions({ prospect: p, size = 'sm' }: Props) {
+export function QuickActions({ prospect: p, size = 'sm', bare = false }: Props) {
   const [copied, setCopied] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
 
@@ -35,6 +38,7 @@ export function QuickActions({ prospect: p, size = 'sm' }: Props) {
   const fb = facebookUrl(p.facebook)
   const bio = linkBioUrl(p.link_bio)
   const email = readEmail(p)
+  const source = sourceUrl(p)
   const images = p.preview_images ?? []
 
   async function copyEmail() {
@@ -44,20 +48,25 @@ export function QuickActions({ prospect: p, size = 'sm' }: Props) {
     setTimeout(() => setCopied(false), 1800)
   }
 
-  if (!proto && !wa && !ig && !site && !fb && !bio && !email && images.length === 0) return null
+  if (!proto && !wa && !ig && !site && !fb && !bio && !email && !source && images.length === 0)
+    return null
 
-  const box = size === 'md' ? 'h-9 w-9' : 'h-8 w-8'
-  const icon = size === 'md' ? 18 : 16
+  const box = bare ? 'h-5 w-5' : size === 'md' ? 'h-9 w-9' : 'h-8 w-8'
+  const icon = bare ? 13 : size === 'md' ? 18 : 16
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
+    <div className={`flex flex-wrap items-center ${bare ? 'justify-end gap-0.5' : 'gap-1'}`}>
       {images.length > 0 && (
         <button
           type="button"
           onClick={() => setPreviewOpen(true)}
           title="Ver previews do protótipo"
           aria-label="Ver previews do protótipo"
-          className={`grid ${box} place-items-center rounded-sm border border-rule text-ink transition-colors hover:bg-paper`}
+          className={
+            bare
+              ? `grid ${box} place-items-center text-ink/70 transition-colors hover:text-deep`
+              : `grid ${box} place-items-center rounded-sm border border-rule text-ink transition-colors hover:bg-paper`
+          }
         >
           <ImagesIcon size={icon} />
         </button>
@@ -70,17 +79,17 @@ export function QuickActions({ prospect: p, size = 'sm' }: Props) {
         />
       )}
       {proto && (
-        <IconLink href={proto} label="Abrir o protótipo do site" box={box} highlight>
+        <IconLink href={proto} label="Abrir o protótipo do site" box={box} bare={bare} highlight>
           <PrototypeIcon size={icon} />
         </IconLink>
       )}
       {wa && (
-        <IconLink href={wa} label="Abrir WhatsApp com a abordagem" box={box}>
+        <IconLink href={wa} label="Abrir WhatsApp com a abordagem" box={box} bare={bare}>
           <WhatsAppIcon size={icon} />
         </IconLink>
       )}
       {ig && (
-        <IconLink href={ig} label="Abrir o Instagram" box={box}>
+        <IconLink href={ig} label="Abrir o Instagram" box={box} bare={bare}>
           <InstagramIcon size={icon} />
         </IconLink>
       )}
@@ -90,28 +99,36 @@ export function QuickActions({ prospect: p, size = 'sm' }: Props) {
           onClick={copyEmail}
           title={copied ? 'E-mail copiado' : `Copiar e-mail (${email})`}
           aria-label={copied ? 'E-mail copiado' : `Copiar e-mail ${email}`}
-          className={`grid ${box} place-items-center rounded-sm border transition-colors ${
-            copied
-              ? 'border-deep bg-deep text-card'
-              : 'border-rule text-ink hover:bg-paper'
-          }`}
+          className={
+            bare
+              ? `grid ${box} place-items-center transition-colors ${copied ? 'text-deep' : 'text-ink/70 hover:text-deep'}`
+              : `grid ${box} place-items-center rounded-sm border transition-colors ${
+                  copied ? 'border-deep bg-deep text-card' : 'border-rule text-ink hover:bg-paper'
+                }`
+          }
         >
           {copied ? <CheckIcon size={icon} /> : <MailIcon size={icon} />}
         </button>
       )}
       {site && (
-        <IconLink href={site} label="Abrir o site atual do cliente" box={box}>
+        <IconLink href={site} label="Abrir o site atual do cliente" box={box} bare={bare}>
           <GlobeIcon size={icon} />
         </IconLink>
       )}
       {fb && (
-        <IconLink href={fb} label="Abrir o Facebook" box={box}>
+        <IconLink href={fb} label="Abrir o Facebook" box={box} bare={bare}>
           <FacebookIcon size={icon} />
         </IconLink>
       )}
       {bio && (
-        <IconLink href={bio} label="Abrir o link na bio" box={box}>
+        <IconLink href={bio} label="Abrir o link na bio" box={box} bare={bare}>
           <LinkIcon size={icon} />
+        </IconLink>
+      )}
+      {/* Sempre por último: posição fixa na lista, já que esse link vai existir em todo registro. */}
+      {source && (
+        <IconLink href={source} label="Abrir a origem do lead" box={box} bare={bare}>
+          <PinIcon size={icon} />
         </IconLink>
       )}
     </div>
@@ -123,14 +140,26 @@ function IconLink({
   label,
   box,
   highlight = false,
+  bare = false,
   children,
 }: {
   href: string
   label: string
   box: string
   highlight?: boolean
+  bare?: boolean
   children: React.ReactNode
 }) {
+  const className = bare
+    ? `grid ${box} place-items-center transition-colors ${
+        highlight ? 'text-deep' : 'text-ink/70 hover:text-deep'
+      }`
+    : `grid ${box} place-items-center rounded-sm border transition-colors ${
+        highlight
+          ? 'border-deep/40 bg-deep/10 text-deep hover:bg-deep hover:text-card'
+          : 'border-rule text-ink hover:bg-paper'
+      }`
+
   return (
     <a
       href={href}
@@ -140,11 +169,7 @@ function IconLink({
       draggable={false}
       title={label}
       aria-label={label}
-      className={`grid ${box} place-items-center rounded-sm border transition-colors ${
-        highlight
-          ? 'border-deep/40 bg-deep/10 text-deep hover:bg-deep hover:text-card'
-          : 'border-rule text-ink hover:bg-paper'
-      }`}
+      className={className}
     >
       {children}
     </a>
@@ -242,6 +267,16 @@ function LinkIcon({ size }: IconProps) {
       <path d="M9.5 14.5 14.5 9.5" />
       <path d="M11 6.5 12.4 5.1a3.5 3.5 0 0 1 4.95 4.95L15.9 11.5" />
       <path d="M13 17.5 11.6 18.9a3.5 3.5 0 0 1-4.95-4.95L8.1 12.5" />
+    </svg>
+  )
+}
+
+/** Pin de mapa: origem do lead (Google Maps). */
+function PinIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
+      <path d="M12 21s7-6.3 7-11.5a7 7 0 1 0-14 0C5 14.7 12 21 12 21Z" />
+      <circle cx="12" cy="9.5" r="2.3" />
     </svg>
   )
 }

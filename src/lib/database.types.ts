@@ -9,12 +9,14 @@ export type Database = {
         Row: {
           address: string | null
           approach_message: string | null
+          business_status: string | null
           city: string
           contact: string | null
           created_at: string
           email: string | null
           facebook: string | null
           google_cid: string | null
+          google_last_review_at: string | null
           google_place_id: string | null
           google_rating: number | null
           google_reviews_count: number | null
@@ -32,6 +34,7 @@ export type Database = {
           prospected_at: string
           segment: string
           slug: string | null
+          source_url: string | null
           status: Database['public']['Enums']['prospect_status']
           updated_at: string
           website: string | null
@@ -41,12 +44,14 @@ export type Database = {
         Insert: {
           address?: string | null
           approach_message?: string | null
+          business_status?: string | null
           city?: string
           contact?: string | null
           created_at?: string
           email?: string | null
           facebook?: string | null
           google_cid?: string | null
+          google_last_review_at?: string | null
           google_place_id?: string | null
           google_rating?: number | null
           google_reviews_count?: number | null
@@ -64,6 +69,7 @@ export type Database = {
           prospected_at?: string
           segment: string
           slug?: string | null
+          source_url?: string | null
           status?: Database['public']['Enums']['prospect_status']
           updated_at?: string
           website?: string | null
