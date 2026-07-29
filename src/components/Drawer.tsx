@@ -100,6 +100,19 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  // Sem isso, no mobile a rolagem da tela por baixo do drawer (que é só
+  // `position: fixed`) faz o Safari/Chrome tratar a ficha como parte do
+  // documento durante o rubber-band, e ela balança pros lados junto com o
+  // bounce elástico da página. Travar o scroll do body enquanto o drawer
+  // está aberto remove esse documento "de baixo" da equação.
+  useEffect(() => {
+    const { overflow } = document.body.style
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = overflow
+    }
+  }, [])
+
   const dirty =
     notes !== (p.notes ?? '') ||
     approach !== (p.approach_message ?? '') ||
