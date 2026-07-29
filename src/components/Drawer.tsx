@@ -167,12 +167,7 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
             </Field>
 
             <Field label="Próxima ação">
-              <input
-                type="date"
-                value={nextAction}
-                onChange={(e) => setNextAction(e.target.value)}
-                className="w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs"
-              />
+              <DateField value={nextAction} onChange={setNextAction} />
             </Field>
           </section>
 
@@ -393,9 +388,43 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="eyebrow">{label}</span>
       <div className="mt-1.5">{children}</div>
     </label>
+  )
+}
+
+/**
+ * iOS Safari não desenha placeholder nem ícone num input[type=date] vazio
+ * (só mostra algo depois que uma data é escolhida). Sobrepomos os dois aqui;
+ * `pointer-events-none` deixa o toque passar direto pro input, que abre o
+ * seletor nativo normalmente.
+ */
+function DateField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="relative min-w-0">
+      <input
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full min-w-0 rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs"
+      />
+      {!value && (
+        <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center gap-1.5 font-mono text-xs text-muted">
+          <CalendarIcon />
+          dd/mm/aaaa
+        </span>
+      )}
+    </div>
+  )
+}
+
+function CalendarIcon() {
+  return (
+    <svg width={13} height={13} viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth={1.6}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
+    </svg>
   )
 }
