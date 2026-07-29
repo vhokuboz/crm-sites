@@ -104,7 +104,7 @@ function Crm({ email }: { email: string }) {
         ) : tab === 'Funil' ? (
           <Funil prospects={prospects} onUpdate={update} onOpen={setOpen} />
         ) : (
-          <Base prospects={prospects} onOpen={setOpen} />
+          <Base onOpen={setOpen} />
         )}
       </main>
 

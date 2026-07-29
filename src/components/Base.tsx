@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Prospect } from '../lib/database.types'
 import {
   ALL_STATUS,
@@ -6,47 +6,55 @@ import {
   RISK_TONE,
   STATUS_LABEL,
   STATUS_TONE,
-  byOpportunity,
   formatDateBR,
   inactivityRisk,
   lastSocialActivityLabel,
   readGap,
 } from '../lib/domain'
+import { useBaseList, useBaseMeta } from '../lib/useBaseList'
 import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { GapMeter } from './GapMeter'
 import { QuickActions } from './QuickActions'
 
 type Props = {
-  prospects: Prospect[]
   onOpen: (p: Prospect) => void
 }
 
-export function Base({ prospects, onOpen }: Props) {
+/** Dispara `onView` quando a sentinela entra na tela: base do scroll infinito. */
+function useLoadMoreSentinel(onView: () => void, enabled: boolean) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !enabled) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) onView()
+      },
+      { rootMargin: '400px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [onView, enabled])
+
+  return ref
+}
+
+export function Base({ onOpen }: Props) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<string>('todos')
   const [segment, setSegment] = useState<string | null>(null)
 
-  /* Segmentos ordenados por frequência: os mais comuns viram os primeiros
-     pills, os que aparecem só uma vez não empurram os úteis pra fora da tela. */
-  const segments = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const p of prospects) counts.set(p.segment, (counts.get(p.segment) ?? 0) + 1)
-    return [...counts.entries()].sort((a, b) => b[1] - a[1])
-  }, [prospects])
+  const meta = useBaseMeta()
+  const { rows, filteredCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useBaseList({ query, status, segment })
 
-  const rows = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return prospects
-      .filter((p) => {
-        if (status !== 'todos' && p.status !== status) return false
-        if (segment && p.segment !== segment) return false
-        if (!q) return true
-        return [p.name, p.segment, p.problem, p.notes, p.website_quality]
-          .filter(Boolean)
-          .some((v) => (v as string).toLowerCase().includes(q))
-      })
-      .sort(byOpportunity)
-  }, [prospects, query, status, segment])
+  const sentinelRef = useLoadMoreSentinel(
+    () => void fetchNextPage(),
+    !!hasNextPage && !isFetchingNextPage,
+  )
+
+  const segments = meta.data?.segments ?? []
 
   return (
     <div className="space-y-4">
@@ -60,7 +68,7 @@ export function Base({ prospects, onOpen }: Props) {
           aria-label="Buscar prospects"
         />
         <span className="font-mono text-[11px] tabular-nums text-muted">
-          {rows.length} de {prospects.length}
+          {filteredCount} de {meta.data?.total ?? 0}
         </span>
       </div>
 
@@ -90,7 +98,9 @@ export function Base({ prospects, onOpen }: Props) {
         </div>
       )}
 
-      {rows.length === 0 ? (
+      {isLoading ? (
+        <p className="eyebrow">Carregando</p>
+      ) : rows.length === 0 ? (
         <p className="rounded-sm border border-dashed border-rule bg-card px-4 py-8 text-center text-[13px] text-muted">
           Nada encontrado com esses filtros.
         </p>
@@ -184,6 +194,10 @@ export function Base({ prospects, onOpen }: Props) {
               <Row key={p.id} prospect={p} onOpen={onOpen} />
             ))}
           </div>
+
+          {/* Sentinela do scroll infinito: ao entrar na tela, busca a próxima leva de 20. */}
+          <div ref={sentinelRef} className="h-px" aria-hidden />
+          {isFetchingNextPage && <p className="eyebrow text-center">Carregando mais</p>}
         </>
       )}
     </div>

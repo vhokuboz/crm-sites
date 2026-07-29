@@ -93,7 +93,10 @@ function normalize(s: string): string {
     .replace(/[\u0300-\u036f]/g, '')
 }
 
-export function readPresence(p: Prospect): Presence {
+/** Campos que bastam pra calcular a lacuna de oportunidade, sem precisar do registro inteiro. */
+export type OpportunityInput = Pick<Prospect, 'google_rating' | 'website_quality' | 'website'>
+
+export function readPresence(p: OpportunityInput): Presence {
   const q = p.website_quality ? normalize(p.website_quality) : ''
 
   if (q.includes('sem site')) return { score: 0, label: 'sem site' }
@@ -115,7 +118,7 @@ export type Gap = {
   presenceLabel: string
 }
 
-export function readGap(p: Prospect): Gap {
+export function readGap(p: OpportunityInput): Gap {
   const presence = readPresence(p)
   const reputation = p.google_rating
   return {
@@ -191,7 +194,7 @@ export function inactivityRisk(p: Prospect): InactivityRisk | null {
  * primeiro; quem ainda nao tem nota entra depois, ordenado pela presenca, porque
  * inventar uma reputacao media para eles seria fabricar dado que nao existe.
  */
-export function byOpportunity(a: Prospect, b: Prospect): number {
+export function byOpportunity(a: OpportunityInput, b: OpportunityInput): number {
   const ga = readGap(a)
   const gb = readGap(b)
   if (ga.size !== null && gb.size !== null) return gb.size - ga.size
