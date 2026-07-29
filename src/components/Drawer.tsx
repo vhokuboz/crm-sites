@@ -2,10 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import type { Prospect, ProspectStatus, ProspectUpdate } from '../lib/database.types'
 import {
   ALL_STATUS,
+  RISK_LABEL,
+  RISK_TONE,
   STATUS_LABEL,
   facebookUrl,
   formatDateBR,
+  inactivityRisk,
   instagramUrl,
+  lastSocialActivityLabel,
   linkBioUrl,
   parsePhones,
   prototypeUrl,
@@ -90,6 +94,8 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
   const proto = prototypeUrl(p)
   const mail = readEmail(p)
   const phones = parsePhones(p.contact)
+  const lastActivity = lastSocialActivityLabel(p)
+  const risk = inactivityRisk(p)
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -113,6 +119,14 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
               <p className="eyebrow">{p.segment} · {p.city}</p>
               <h2 className="mt-1 font-display text-2xl font-semibold leading-tight tracking-tight">
                 {p.name}
+                {lastActivity && (
+                  <span
+                    className={`ml-1.5 font-mono text-sm font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
+                    title={`Última atividade social: ${lastActivity}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
+                  >
+                    · {lastActivity}
+                  </span>
+                )}
               </h2>
               <BusinessStatusBadge prospect={p} className="mt-1.5" />
             </div>
