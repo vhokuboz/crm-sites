@@ -5,9 +5,11 @@ import {
   RISK_LABEL,
   RISK_TONE,
   STATUS_LABEL,
+  facebookHandle,
   facebookUrl,
   formatDateBR,
   inactivityRisk,
+  instagramHandle,
   instagramUrl,
   lastSocialActivityLabel,
   linkBioUrl,
@@ -20,12 +22,49 @@ import {
 import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { GapMeter } from './GapMeter'
 import { ImagePreviewModal } from './ImagePreviewModal'
-import { QuickActions } from './QuickActions'
+import { FacebookIcon, GlobeIcon, InstagramIcon, LinkIcon, QuickActions } from './QuickActions'
 
 type Props = {
   prospect: Prospect
   onUpdate: (id: string, patch: ProspectUpdate) => Promise<boolean>
   onClose: () => void
+}
+
+// whatsapp fica de fora: já tem seu próprio lugar na seção Contato.
+type SocialFieldKey = 'instagram' | 'website' | 'facebook' | 'link_bio'
+
+const SOCIAL_FIELDS: { key: SocialFieldKey; label: string; placeholder: string }[] = [
+  { key: 'instagram', label: 'Instagram', placeholder: '@perfil' },
+  { key: 'website', label: 'Site', placeholder: 'https://cliente.com.br' },
+  { key: 'facebook', label: 'Facebook', placeholder: 'facebook.com/pagina' },
+  { key: 'link_bio', label: 'Link na bio', placeholder: 'linktr.ee/perfil' },
+]
+
+type SocialDraft = { field: SocialFieldKey; value: string }
+
+/**
+ * Preenchimento manual só entra com o essencial (arroba, handle, domínio) --
+ * normaliza pra URL completa aqui, reusando os mesmos parsers que já leem o
+ * texto livre vindo da prospecção.
+ */
+function normalizeSocialValue(field: SocialFieldKey, value: string): string {
+  switch (field) {
+    case 'instagram': {
+      const parsed = instagramUrl(value)
+      if (parsed) return parsed
+      // Não reconheceu "@handle" nem "instagram.com/handle": se já é um link
+      // (ex. link de compartilhamento sem handle no formato usual), mantém
+      // como veio -- prefixar por cima geraria uma URL duplicada quebrada.
+      if (/^https?:\/\//i.test(value)) return value
+      return `https://instagram.com/${value.replace(/^@/, '')}`
+    }
+    case 'facebook':
+      return facebookUrl(value) ?? value
+    case 'link_bio':
+      return linkBioUrl(value) ?? value
+    case 'website':
+      return websiteUrl(value) ?? value
+  }
 }
 
 export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
@@ -38,6 +77,8 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
   const [nextAction, setNextAction] = useState(p.next_action_at ?? '')
   const [saved, setSaved] = useState(false)
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
+  const [socialDrafts, setSocialDrafts] = useState<SocialDraft[]>([])
+  const [editingSocial, setEditingSocial] = useState<Partial<Record<SocialFieldKey, string>>>({})
 
   useEffect(() => {
     setNotes(p.notes ?? '')
@@ -46,6 +87,8 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     setLanding(p.landing_page_url ?? '')
     setStatus(p.status)
     setNextAction(p.next_action_at ?? '')
+    setSocialDrafts([])
+    setEditingSocial({})
   }, [p.id, p.notes, p.approach_message, p.email, p.landing_page_url, p.status, p.next_action_at])
 
   useEffect(() => {
@@ -63,7 +106,53 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     email !== (p.email ?? '') ||
     landing !== (p.landing_page_url ?? '') ||
     status !== p.status ||
-    nextAction !== (p.next_action_at ?? '')
+    nextAction !== (p.next_action_at ?? '') ||
+    socialDrafts.some((d) => d.value.trim()) ||
+    Object.keys(editingSocial).length > 0
+
+  // Campos de rede social ainda vazios no prospect e não escolhidos em outra
+  // linha de rascunho -- são as opções que sobram pro select de cada linha.
+  const emptySocialFields = SOCIAL_FIELDS.filter((f) => !p[f.key])
+  const usedSocialFields = new Set(socialDrafts.map((d) => d.field))
+  const remainingSocialFields = emptySocialFields.filter((f) => !usedSocialFields.has(f.key))
+
+  function optionsForSocialRow(index: number) {
+    const usedByOthers = new Set(socialDrafts.filter((_, i) => i !== index).map((d) => d.field))
+    return emptySocialFields.filter((f) => !usedByOthers.has(f.key))
+  }
+
+  function addSocialDraft() {
+    if (remainingSocialFields.length === 0) return
+    setSocialDrafts((rows) => [...rows, { field: remainingSocialFields[0].key, value: '' }])
+  }
+
+  function updateSocialDraftField(index: number, field: SocialFieldKey) {
+    setSocialDrafts((rows) => rows.map((r, i) => (i === index ? { ...r, field } : r)))
+  }
+
+  function updateSocialDraftValue(index: number, value: string) {
+    setSocialDrafts((rows) => rows.map((r, i) => (i === index ? { ...r, value } : r)))
+  }
+
+  function removeSocialDraft(index: number) {
+    setSocialDrafts((rows) => rows.filter((_, i) => i !== index))
+  }
+
+  function startEditingSocial(field: SocialFieldKey, seed: string) {
+    setEditingSocial((m) => ({ ...m, [field]: seed }))
+  }
+
+  function updateEditingSocial(field: SocialFieldKey, value: string) {
+    setEditingSocial((m) => ({ ...m, [field]: value }))
+  }
+
+  function cancelEditingSocial(field: SocialFieldKey) {
+    setEditingSocial((m) => {
+      const next = { ...m }
+      delete next[field]
+      return next
+    })
+  }
 
   async function saveText() {
     const patch: ProspectUpdate = {
@@ -74,6 +163,14 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
       status,
       next_action_at: nextAction || null,
     }
+    for (const d of socialDrafts) {
+      const value = d.value.trim()
+      if (value) patch[d.field] = normalizeSocialValue(d.field, value)
+    }
+    for (const [field, value] of Object.entries(editingSocial) as [SocialFieldKey, string][]) {
+      const trimmed = value.trim()
+      patch[field] = trimmed ? normalizeSocialValue(field, trimmed) : null
+    }
     // Registrar o protótipo é o próprio ato de sair de "novo": quem tem página
     // publicada já está pronto para a abordagem, e reclassificar na mão seria
     // uma segunda etapa fácil de esquecer.
@@ -82,6 +179,8 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     const ok = await onUpdate(p.id, patch)
     if (ok) {
       setSaved(true)
+      setSocialDrafts([])
+      setEditingSocial({})
       setTimeout(() => setSaved(false), 1800)
     }
   }
@@ -205,62 +304,6 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
                   </dd>
                 </div>
               )}
-              {p.instagram && (
-                <div className="flex gap-2">
-                  <dt className="w-20 text-muted">instagram</dt>
-                  <dd>
-                    {ig ? (
-                      <a href={ig} target="_blank" rel="noreferrer noopener" className="hover:underline">
-                        {p.instagram}
-                      </a>
-                    ) : (
-                      <span className="text-muted">{p.instagram}</span>
-                    )}
-                  </dd>
-                </div>
-              )}
-              {p.website && (
-                <div className="flex gap-2">
-                  <dt className="w-20 text-muted">site</dt>
-                  <dd className="min-w-0 break-all">
-                    {site ? (
-                      <a href={site} target="_blank" rel="noreferrer noopener" className="hover:underline">
-                        {p.website}
-                      </a>
-                    ) : (
-                      <span className="text-muted">{p.website}</span>
-                    )}
-                  </dd>
-                </div>
-              )}
-              {p.facebook && (
-                <div className="flex gap-2">
-                  <dt className="w-20 text-muted">facebook</dt>
-                  <dd className="min-w-0 break-all">
-                    {fb ? (
-                      <a href={fb} target="_blank" rel="noreferrer noopener" className="hover:underline">
-                        {p.facebook}
-                      </a>
-                    ) : (
-                      <span className="text-muted">{p.facebook}</span>
-                    )}
-                  </dd>
-                </div>
-              )}
-              {p.link_bio && (
-                <div className="flex gap-2">
-                  <dt className="w-20 text-muted">link na bio</dt>
-                  <dd className="min-w-0 break-all">
-                    {bio ? (
-                      <a href={bio} target="_blank" rel="noreferrer noopener" className="hover:underline">
-                        {p.link_bio}
-                      </a>
-                    ) : (
-                      <span className="text-muted">{p.link_bio}</span>
-                    )}
-                  </dd>
-                </div>
-              )}
             </dl>
 
             {wa && (
@@ -344,6 +387,102 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
             )}
           </section>
 
+          <section className="space-y-3">
+            <h3 className="eyebrow">Redes sociais</h3>
+            <dl className="space-y-1.5 font-mono text-xs">
+              {p.instagram && (
+                <SocialInfoRow
+                  icon={<InstagramIcon size={13} />}
+                  label="instagram"
+                  href={ig}
+                  displayText={instagramHandle(p.instagram) ?? p.instagram}
+                  editingValue={editingSocial.instagram}
+                  onStartEdit={() => startEditingSocial('instagram', instagramHandle(p.instagram) ?? p.instagram ?? '')}
+                  onChange={(v) => updateEditingSocial('instagram', v)}
+                  onCancelEdit={() => cancelEditingSocial('instagram')}
+                />
+              )}
+              {p.website && (
+                <SocialInfoRow
+                  icon={<GlobeIcon size={13} />}
+                  label="site"
+                  href={site}
+                  displayText={p.website}
+                  editingValue={editingSocial.website}
+                  onStartEdit={() => startEditingSocial('website', p.website ?? '')}
+                  onChange={(v) => updateEditingSocial('website', v)}
+                  onCancelEdit={() => cancelEditingSocial('website')}
+                />
+              )}
+              {p.facebook && (
+                <SocialInfoRow
+                  icon={<FacebookIcon size={13} />}
+                  label="facebook"
+                  href={fb}
+                  displayText={facebookHandle(p.facebook) ?? p.facebook}
+                  editingValue={editingSocial.facebook}
+                  onStartEdit={() => startEditingSocial('facebook', facebookHandle(p.facebook) ?? p.facebook ?? '')}
+                  onChange={(v) => updateEditingSocial('facebook', v)}
+                  onCancelEdit={() => cancelEditingSocial('facebook')}
+                />
+              )}
+              {p.link_bio && (
+                <SocialInfoRow
+                  icon={<LinkIcon size={13} />}
+                  label="link"
+                  href={bio}
+                  displayText={p.link_bio}
+                  editingValue={editingSocial.link_bio}
+                  onStartEdit={() => startEditingSocial('link_bio', p.link_bio ?? '')}
+                  onChange={(v) => updateEditingSocial('link_bio', v)}
+                  onCancelEdit={() => cancelEditingSocial('link_bio')}
+                />
+              )}
+              {!p.instagram && !p.website && !p.facebook && !p.link_bio && (
+                <p className="text-muted">Nenhuma rede cadastrada.</p>
+              )}
+            </dl>
+
+            {socialDrafts.map((draft, i) => (
+              <div key={i} className="flex gap-2">
+                <select
+                  value={draft.field}
+                  onChange={(e) => updateSocialDraftField(i, e.target.value as SocialFieldKey)}
+                  className="w-32 shrink-0 rounded-sm border border-rule bg-card px-2 py-1.5 font-mono text-xs"
+                >
+                  {optionsForSocialRow(i).map((f) => (
+                    <option key={f.key} value={f.key}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  value={draft.value}
+                  onChange={(e) => updateSocialDraftValue(i, e.target.value)}
+                  placeholder={SOCIAL_FIELDS.find((f) => f.key === draft.field)?.placeholder}
+                  className="min-w-0 flex-1 rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeSocialDraft(i)}
+                  aria-label="Remover"
+                  className="shrink-0 rounded-sm border border-rule px-2 font-mono text-xs text-muted hover:bg-card"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addSocialDraft}
+              disabled={remainingSocialFields.length === 0}
+              className="rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card disabled:opacity-40"
+            >
+              + Adicionar informações
+            </button>
+          </section>
+
           <section>
             <h3 className="eyebrow">Mensagem de abordagem</h3>
             <textarea
@@ -386,6 +525,91 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
   )
 }
 
+/** Linha de rede social já preenchida: link + lápis que troca a exibição por um input de edição. */
+function SocialInfoRow({
+  icon,
+  label,
+  href,
+  displayText,
+  editingValue,
+  onStartEdit,
+  onChange,
+  onCancelEdit,
+}: {
+  icon: React.ReactNode
+  label: string
+  href: string | null
+  displayText: string
+  editingValue: string | undefined
+  onStartEdit: () => void
+  onChange: (value: string) => void
+  onCancelEdit: () => void
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <dt className="flex w-20 shrink-0 items-center gap-1.5 text-muted">
+        {icon}
+        {label}
+      </dt>
+      {editingValue !== undefined ? (
+        <>
+          <input
+            autoFocus
+            value={editingValue}
+            onChange={(e) => onChange(e.target.value)}
+            className="min-w-0 flex-1 rounded-sm border border-rule bg-card px-2.5 py-1 font-mono text-xs"
+          />
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            aria-label="Cancelar edição"
+            className="shrink-0 rounded-sm border border-rule px-2 font-mono text-xs text-muted hover:bg-card"
+          >
+            ×
+          </button>
+        </>
+      ) : (
+        <dd className="flex min-w-0 flex-1 items-center gap-1.5 break-all">
+          {href ? (
+            <a href={href} target="_blank" rel="noreferrer noopener" className="hover:underline">
+              {displayText}
+            </a>
+          ) : (
+            <span className="text-muted">{displayText}</span>
+          )}
+          <button
+            type="button"
+            onClick={onStartEdit}
+            aria-label={`Editar ${label}`}
+            className="shrink-0 text-muted hover:text-ink"
+          >
+            <PencilIcon size={11} />
+          </button>
+        </dd>
+      )}
+    </div>
+  )
+}
+
+function PencilIcon({ size }: { size: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  )
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block min-w-0">
@@ -395,11 +619,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
+const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
+
 /**
  * iOS Safari não desenha placeholder nem ícone num input[type=date] vazio
- * (só mostra algo depois que uma data é escolhida). Sobrepomos os dois aqui;
- * `pointer-events-none` deixa o toque passar direto pro input, que abre o
- * seletor nativo normalmente.
+ * (só mostra algo depois que uma data é escolhida). Sobrepomos os dois aqui,
+ * só nesse caso — no desktop o navegador já desenha "dd/mm/aaaa" sozinho, e
+ * sobrepor de novo duplicava o texto. `pointer-events-none` deixa o toque
+ * passar direto pro input, que abre o seletor nativo normalmente.
  */
 function DateField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
@@ -410,7 +637,7 @@ function DateField({ value, onChange }: { value: string; onChange: (v: string) =
         onChange={(e) => onChange(e.target.value)}
         className="w-full min-w-0 rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs"
       />
-      {!value && (
+      {isIOS && !value && (
         <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center gap-1.5 font-mono text-xs text-muted">
           <CalendarIcon />
           dd/mm/aaaa

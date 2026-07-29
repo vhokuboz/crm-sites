@@ -246,9 +246,21 @@ export function facebookUrl(value: string | null): string | null {
   if (!value) return null
   const v = value.trim()
   if (!v) return null
-  if (v.startsWith('http')) return v
-  if (v.includes('facebook.com')) return `https://${v}`
+  // Case-insensitive: teclado de celular às vezes maiúsculiza a primeira letra
+  // colada/digitada ("Https://...", "Facebook.com/...").
+  if (/^https?:\/\//i.test(v)) return v
+  if (/facebook\.com/i.test(v)) return `https://${v}`
   return `https://facebook.com/${v.replace(/^@/, '')}`
+}
+
+/** Mesmo parsing do facebookUrl, mas devolve só o identificador da página -- a URL completa é ilegível no card. */
+export function facebookHandle(value: string | null): string | null {
+  if (!value) return null
+  const v = value.trim()
+  if (!v) return null
+  const url = v.match(/facebook\.com\/([^/?#]+)/i)
+  if (url) return url[1]
+  return v.replace(/^@/, '').replace(/^https?:\/\//i, '')
 }
 
 /** `link_bio` (Linktree e afins) as vezes chega sem esquema. */
@@ -270,8 +282,19 @@ export function instagramUrl(value: string | null): string | null {
   const v = value.trim()
   const handle = v.match(/^@([A-Za-z0-9._]+)/)
   if (handle) return `https://instagram.com/${handle[1]}`
-  const url = v.match(/instagram\.com\/([A-Za-z0-9._]+)/)
+  const url = v.match(/instagram\.com\/([A-Za-z0-9._]+)/i)
   if (url) return `https://instagram.com/${url[1]}`
+  return null
+}
+
+/** Mesmo parsing do instagramUrl, mas devolve "@handle" para exibição -- a URL completa é ilegível no card. */
+export function instagramHandle(value: string | null): string | null {
+  if (!value) return null
+  const v = value.trim()
+  const handle = v.match(/^@([A-Za-z0-9._]+)/)
+  if (handle) return `@${handle[1]}`
+  const url = v.match(/instagram\.com\/([A-Za-z0-9._]+)/i)
+  if (url) return `@${url[1]}`
   return null
 }
 

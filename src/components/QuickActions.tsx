@@ -203,7 +203,7 @@ function PrototypeIcon({ size }: IconProps) {
   )
 }
 
-function WhatsAppIcon({ size }: IconProps) {
+export function WhatsAppIcon({ size }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden fill="currentColor">
       <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.28-1.38a9.9 9.9 0 0 0 4.76 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 1.82c2.16 0 4.19.84 5.72 2.37a8.03 8.03 0 0 1 2.37 5.72c0 4.46-3.63 8.09-8.09 8.09a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.1.81.83-3.02-.2-.31a8.16 8.16 0 0 1-1.25-4.34c0-4.46 3.63-8.09 8.2-8.09Zm-3.6 4.1c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.6.13.17 1.76 2.68 4.26 3.76.6.26 1.06.41 1.42.53.6.19 1.14.16 1.57.1.48-.07 1.48-.6 1.68-1.19.21-.58.21-1.08.15-1.19-.06-.1-.23-.16-.48-.29-.25-.12-1.48-.73-1.71-.81-.23-.09-.4-.13-.56.12-.17.25-.64.81-.79.98-.14.16-.29.19-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.15-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.13-.15.17-.25.25-.41.08-.17.04-.31-.02-.44-.06-.12-.55-1.36-.77-1.86-.2-.48-.4-.42-.55-.42l-.47-.01Z" />
@@ -211,7 +211,7 @@ function WhatsAppIcon({ size }: IconProps) {
   )
 }
 
-function InstagramIcon({ size }: IconProps) {
+export function InstagramIcon({ size }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
       <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -230,7 +230,7 @@ function MailIcon({ size }: IconProps) {
   )
 }
 
-function GlobeIcon({ size }: IconProps) {
+export function GlobeIcon({ size }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
       <circle cx="12" cy="12" r="9" />
@@ -252,7 +252,7 @@ function ImagesIcon({ size }: IconProps) {
   )
 }
 
-function FacebookIcon({ size }: IconProps) {
+export function FacebookIcon({ size }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden fill="currentColor">
       <path d="M14.5 22v-8.4h2.8l.42-3.27H14.5V8.2c0-.95.26-1.6 1.62-1.6h1.74V3.7c-.3-.04-1.33-.13-2.53-.13-2.5 0-4.22 1.53-4.22 4.34v2.42H8.3v3.27h2.8V22h3.4Z" />
@@ -261,7 +261,7 @@ function FacebookIcon({ size }: IconProps) {
 }
 
 /** Elo de corrente: agregador de links (Linktree e afins). */
-function LinkIcon({ size }: IconProps) {
+export function LinkIcon({ size }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
       <path d="M9.5 14.5 14.5 9.5" />
