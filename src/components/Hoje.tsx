@@ -21,7 +21,7 @@ export function Hoje({ prospects, onUpdate, onOpen }: Props) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <div className="lg:col-start-1 lg:row-start-1">
+      <div className="min-w-0 lg:col-start-1 lg:row-start-1">
         <Kpis
           atrasados={queue.overdue.length}
           hoje={queue.today.length}
@@ -34,13 +34,13 @@ export function Hoje({ prospects, onUpdate, onOpen }: Props) {
           DOM, essas métricas aparecem logo abaixo dos KPIs, sem precisar
           rolar a tela toda. No desktop, o grid-column/row a reposiciona
           para a lateral, ao lado de Atrasados/Para hoje/Sem próximo passo. */}
-      <aside className="space-y-8 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+      <aside className="min-w-0 space-y-8 lg:col-start-2 lg:row-start-1 lg:row-span-2">
         <Funnel prospects={prospects} />
         <Segments prospects={prospects} />
         <TopGaps prospects={abertos} onOpen={onOpen} />
       </aside>
 
-      <div className="space-y-8 lg:col-start-1 lg:row-start-2">
+      <div className="min-w-0 space-y-8 lg:col-start-1 lg:row-start-2">
         <Section
           title="Atrasados"
           count={queue.overdue.length}
