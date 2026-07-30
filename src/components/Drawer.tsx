@@ -8,6 +8,7 @@ import {
   facebookHandle,
   facebookUrl,
   formatDateBR,
+  formatWhatsapp,
   inactivityRisk,
   instagramHandle,
   instagramUrl,
@@ -22,7 +23,7 @@ import {
 import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { GapMeter } from './GapMeter'
 import { ImagePreviewModal } from './ImagePreviewModal'
-import { FacebookIcon, GlobeIcon, InstagramIcon, LinkIcon, QuickActions } from './QuickActions'
+import { FacebookIcon, GlobeIcon, InstagramIcon, LinkIcon, QuickActions, WhatsAppIcon } from './QuickActions'
 
 type Props = {
   prospect: Prospect
@@ -73,6 +74,8 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
   const [approach, setApproach] = useState(p.approach_message ?? '')
   const [email, setEmail] = useState(p.email ?? '')
   const [landing, setLanding] = useState(p.landing_page_url ?? '')
+  const [whatsapp, setWhatsapp] = useState(p.whatsapp ?? '')
+  const [editingWhatsapp, setEditingWhatsapp] = useState(false)
   const [status, setStatus] = useState(p.status)
   const [nextAction, setNextAction] = useState(p.next_action_at ?? '')
   const [saved, setSaved] = useState(false)
@@ -85,11 +88,13 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     setApproach(p.approach_message ?? '')
     setEmail(p.email ?? '')
     setLanding(p.landing_page_url ?? '')
+    setWhatsapp(p.whatsapp ?? '')
+    setEditingWhatsapp(false)
     setStatus(p.status)
     setNextAction(p.next_action_at ?? '')
     setSocialDrafts([])
     setEditingSocial({})
-  }, [p.id, p.notes, p.approach_message, p.email, p.landing_page_url, p.status, p.next_action_at])
+  }, [p.id, p.notes, p.approach_message, p.email, p.landing_page_url, p.whatsapp, p.status, p.next_action_at])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -118,6 +123,7 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     approach !== (p.approach_message ?? '') ||
     email !== (p.email ?? '') ||
     landing !== (p.landing_page_url ?? '') ||
+    whatsapp !== (p.whatsapp ?? '') ||
     status !== p.status ||
     nextAction !== (p.next_action_at ?? '') ||
     socialDrafts.some((d) => d.value.trim()) ||
@@ -173,6 +179,7 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
       approach_message: approach || null,
       email: email.trim() || null,
       landing_page_url: landing.trim() || null,
+      whatsapp: whatsapp.trim() || null,
       status,
       next_action_at: nextAction || null,
     }
@@ -194,6 +201,7 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
       setSaved(true)
       setSocialDrafts([])
       setEditingSocial({})
+      setEditingWhatsapp(false)
       setTimeout(() => setSaved(false), 1800)
     }
   }
@@ -205,7 +213,9 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
   const bio = linkBioUrl(p.link_bio)
   const proto = prototypeUrl(p)
   const mail = readEmail(p)
-  const phones = parsePhones(p.contact)
+  // Celular e whatsapp costumam ser o mesmo numero -- com whatsapp cadastrado,
+  // ele já cobre o celular, então some da lista pra não duplicar a informação.
+  const phones = parsePhones(p.contact).filter((ph) => !p.whatsapp || !ph.isMobile)
   const lastActivity = lastSocialActivityLabel(p)
   const risk = inactivityRisk(p)
 
@@ -305,7 +315,7 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
                   </div>
                 ))
               ) : (
-                <p className="text-muted">Sem telefone cadastrado.</p>
+                !p.whatsapp && <p className="text-muted">Sem telefone cadastrado.</p>
               )}
               {mail && (
                 <div className="flex gap-2">
@@ -317,7 +327,38 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
                   </dd>
                 </div>
               )}
+              {p.whatsapp && (
+                <SocialInfoRow
+                  icon={<WhatsAppIcon size={13} />}
+                  label="whatsapp"
+                  href={wa}
+                  displayText={formatWhatsapp(p.whatsapp) ?? p.whatsapp}
+                  editingValue={editingWhatsapp ? whatsapp : undefined}
+                  onStartEdit={() => {
+                    setWhatsapp(p.whatsapp ?? '')
+                    setEditingWhatsapp(true)
+                  }}
+                  onChange={setWhatsapp}
+                  onCancelEdit={() => {
+                    setWhatsapp(p.whatsapp ?? '')
+                    setEditingWhatsapp(false)
+                  }}
+                />
+              )}
             </dl>
+
+            {!p.whatsapp && (
+              <label className="mt-3 block">
+                <span className="font-mono text-[11px] text-muted">WhatsApp</span>
+                <input
+                  type="tel"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+                />
+              </label>
+            )}
 
             {wa && (
               <a

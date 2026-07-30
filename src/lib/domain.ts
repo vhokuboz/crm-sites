@@ -230,6 +230,19 @@ export function whatsappDigits(p: Prospect): string | null {
   return mobile ? `55${mobile.digits}` : null
 }
 
+/** Exibição amigável do numero salvo (com ou sem DDI 55): "+55 (11) 99999-9999". */
+export function formatWhatsapp(value: string | null): string | null {
+  const digits = value?.replace(/\D/g, '')
+  if (!digits) return null
+  const local = digits.length > 11 && digits.startsWith('55') ? digits.slice(2) : digits
+  const ddd = local.slice(0, 2)
+  const rest = local.slice(2)
+  if (ddd.length !== 2 || (rest.length !== 8 && rest.length !== 9)) return value
+  const mid = rest.length === 9 ? rest.slice(0, 5) : rest.slice(0, 4)
+  const end = rest.slice(-4)
+  return `+55 (${ddd}) ${mid}-${end}`
+}
+
 export function whatsappUrl(p: Prospect, message?: string | null): string | null {
   const digits = whatsappDigits(p)
   if (!digits) return null
