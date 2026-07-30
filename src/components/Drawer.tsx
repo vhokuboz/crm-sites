@@ -43,6 +43,10 @@ const SOCIAL_FIELDS: { key: SocialFieldKey; label: string; placeholder: string }
 
 type SocialDraft = { field: SocialFieldKey; value: string }
 
+function truncate(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max)}…` : text
+}
+
 /**
  * Preenchimento manual só entra com o essencial (arroba, handle, domínio) --
  * normaliza pra URL completa aqui, reusando os mesmos parsers que já leem o
@@ -626,10 +630,10 @@ function SocialInfoRow({
         <dd className="flex min-w-0 flex-1 items-center gap-1.5 break-all">
           {href ? (
             <a href={href} target="_blank" rel="noreferrer noopener" className="hover:underline">
-              {displayText}
+              {truncate(displayText, 50)}
             </a>
           ) : (
-            <span className="text-muted">{displayText}</span>
+            <span className="text-muted">{truncate(displayText, 50)}</span>
           )}
           <button
             type="button"
