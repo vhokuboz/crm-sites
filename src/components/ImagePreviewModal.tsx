@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 type Props = {
   images: string[]
@@ -30,7 +31,7 @@ export function ImagePreviewModal({ images, initialIndex = 0, title, onClose }: 
     return () => document.removeEventListener('keydown', onKey)
   }, [hasMultiple, onClose])
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6">
       <div className="absolute inset-0 bg-ink/70" onClick={onClose} aria-hidden />
 
@@ -97,6 +98,7 @@ export function ImagePreviewModal({ images, initialIndex = 0, title, onClose }: 
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
