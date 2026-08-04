@@ -8,6 +8,7 @@ import { Hoje } from './components/Hoje'
 import { Funil } from './components/Funil'
 import { Base } from './components/Base'
 import { Drawer } from './components/Drawer'
+import { AddProspectModal } from './components/AddProspectModal'
 
 const TABS = ['Hoje', 'Funil', 'Base'] as const
 type Tab = (typeof TABS)[number]
@@ -38,9 +39,18 @@ export default function App() {
 }
 
 function Crm({ email }: { email: string }) {
-  const { prospects, loading, error, update, dismissError } = useProspects()
+  const { prospects, loading, error, update, reload, dismissError } = useProspects()
   const [tab, setTab] = useState<Tab>('Hoje')
   const [open, setOpen] = useState<Prospect | null>(null)
+  const [adding, setAdding] = useState(false)
+
+  // Ficha abre direto no prospect recém-criado -- segmento e problema ainda
+  // dependem de revisão manual, então não faz sentido deixar o usuário caçá-lo.
+  async function handleCreated(prospect: Prospect) {
+    setAdding(false)
+    await reload()
+    setOpen(prospect)
+  }
 
   // O drawer segue o registro: uma edicao no painel reflete no card por baixo.
   const selected = open ? (prospects.find((p) => p.id === open.id) ?? null) : null
@@ -70,6 +80,12 @@ function Crm({ email }: { email: string }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={() => setAdding(true)}
+              className="rounded-sm bg-ink px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-paper hover:opacity-90"
+            >
+              + Novo prospect
+            </button>
             <span className="hidden font-mono text-[11px] text-muted sm:inline">{email}</span>
             <button
               onClick={() => void supabase.auth.signOut()}
@@ -111,6 +127,8 @@ function Crm({ email }: { email: string }) {
       {selected && (
         <Drawer prospect={selected} onUpdate={update} onClose={() => setOpen(null)} />
       )}
+
+      {adding && <AddProspectModal onCreated={handleCreated} onClose={() => setAdding(false)} />}
     </div>
   )
 }
