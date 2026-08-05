@@ -27,3 +27,25 @@ export function extractInstagramHandle(url: string): string | null {
   const m = url.match(/instagram\.com\/([A-Za-z0-9._]+)/i)
   return m ? m[1] : null
 }
+
+/**
+ * Mapeia o `primaryType` do Places API (taxonomia do Google, em inglês) pro
+ * vocabulário de segmento do funil de prospecção (ver prospeccao-bauru:
+ * Docerias/Confeitarias, Artesanato, Nutricionistas, Psicólogos, Advogados,
+ * Fisioterapeutas, Dentistas). Cobre só os tipos com correspondência clara e
+ * unívoca -- tipo sem entrada aqui cai no nome legível que o próprio Places
+ * API devolve (`primaryTypeDisplayName`), que continua editável na ficha em
+ * vez de arriscar categorizar errado.
+ */
+const SEGMENT_BY_PLACE_TYPE: Record<string, string> = {
+  dentist: 'Dentistas',
+  lawyer: 'Advogados',
+  physiotherapist: 'Fisioterapeutas',
+  psychotherapist: 'Psicólogos',
+  bakery: 'Docerias/Confeitarias',
+}
+
+export function resolveSegment(primaryType: string | null, fallbackLabel: string | null): string {
+  if (primaryType && SEGMENT_BY_PLACE_TYPE[primaryType]) return SEGMENT_BY_PLACE_TYPE[primaryType]
+  return fallbackLabel ?? '[PREENCHER]'
+}

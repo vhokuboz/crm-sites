@@ -6,7 +6,12 @@
 // olhar o site/Instagram e julgar — isso continua sendo trabalho de um
 // agente depois, não desta function.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { extractInstagramHandle, extractNameAndLocation, extractPlaceId } from './parsing.ts'
+import {
+  extractInstagramHandle,
+  extractNameAndLocation,
+  extractPlaceId,
+  resolveSegment,
+} from './parsing.ts'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -24,6 +29,7 @@ const FIELD_MASK = [
   'places.internationalPhoneNumber',
   'places.websiteUri',
   'places.businessStatus',
+  'places.primaryType',
   'places.primaryTypeDisplayName',
 ].join(',')
 
@@ -112,7 +118,7 @@ Deno.serve(async (req) => {
 
     const insert = {
       name: place.displayName?.text ?? '[PREENCHER]',
-      segment: place.primaryTypeDisplayName?.text ?? '[PREENCHER]',
+      segment: resolveSegment(place.primaryType ?? null, place.primaryTypeDisplayName?.text ?? null),
       address: place.formattedAddress ?? null,
       contact: place.internationalPhoneNumber ?? null,
       website: place.websiteUri ?? null,

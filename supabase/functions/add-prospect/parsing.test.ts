@@ -1,5 +1,10 @@
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts'
-import { extractInstagramHandle, extractNameAndLocation, extractPlaceId } from './parsing.ts'
+import {
+  extractInstagramHandle,
+  extractNameAndLocation,
+  extractPlaceId,
+  resolveSegment,
+} from './parsing.ts'
 
 Deno.test('extractPlaceId - permalink com place_id', () => {
   assertEquals(
@@ -37,4 +42,16 @@ Deno.test('extractInstagramHandle - URL completa', () => {
 
 Deno.test('extractInstagramHandle - sem instagram devolve null', () => {
   assertEquals(extractInstagramHandle('https://example.com'), null)
+})
+
+Deno.test('resolveSegment - tipo mapeado tem prioridade sobre o nome legível', () => {
+  assertEquals(resolveSegment('dentist', 'Dentista'), 'Dentistas')
+})
+
+Deno.test('resolveSegment - tipo sem mapeamento cai no nome legível do Places API', () => {
+  assertEquals(resolveSegment('legal_services', 'Consultoria'), 'Consultoria')
+})
+
+Deno.test('resolveSegment - sem tipo nem nome usa placeholder', () => {
+  assertEquals(resolveSegment(null, null), '[PREENCHER]')
 })
