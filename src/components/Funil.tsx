@@ -28,7 +28,7 @@ export function Funil({ prospects, onUpdate, onOpen }: Props) {
         Arraste um card para mudar o status, ou use o seletor no próprio card.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="flex gap-4 overflow-x-auto pb-2">
         {FUNNEL.map((status) => {
           const items = prospects.filter((p) => p.status === status)
           return (
@@ -40,7 +40,7 @@ export function Funil({ prospects, onUpdate, onOpen }: Props) {
               }}
               onDragLeave={() => setOver((s) => (s === status ? null : s))}
               onDrop={() => drop(status)}
-              className={`flex min-h-40 flex-col rounded-sm border p-2 transition-colors ${
+              className={`flex min-h-40 w-64 shrink-0 flex-col rounded-sm border p-2 transition-colors ${
                 over === status ? 'border-deep bg-deep/5' : 'border-rule bg-card/50'
               }`}
             >
@@ -135,6 +135,10 @@ function Card({
       </div>
 
       <BusinessStatusBadge prospect={p} className="mt-1.5" />
+
+      {p.status === 'refinamento' && p.revision_count > 0 && (
+        <p className="mt-1 font-mono text-[10px] text-gold">{p.revision_count + 1}ª rodada</p>
+      )}
 
       {p.next_action_at && (
         <p className="mt-1 font-mono text-[10px] text-muted">{relativeDay(p.next_action_at)}</p>
