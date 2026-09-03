@@ -25,8 +25,10 @@ Cloudflare Pages sem servidor nenhum.
 
 ## O funil
 
-`novo → prototipado → contatado → respondeu → negociando → fechado`, mais
-`perdido` e `descartado` fora da esteira.
+`novo → prototipado → contatado → briefing → aguardando_pendencias →
+refinamento → em_analise → entrega → aguardando_pagamento → finalizado`, mais
+`perdido` e `descartado` fora da esteira (alcançáveis a partir de qualquer
+etapa aberta, pelo seletor de status na ficha).
 
 **Prototipado** existe porque a criação do protótipo é feita por um agente à
 parte: separa quem já tem página publicada — e portanto está pronto para a
@@ -35,6 +37,31 @@ uma URL em `landing_page_url` na ficha de um prospect ainda `novo`; o agente que
 grava a URL direto no banco pode, em vez disso, escrever `status =
 'prototipado'` junto. Na aba Hoje, quem está prototipado encabeça a fila "sem
 próximo passo".
+
+**Do "contatado" em diante**, o funil segue o processo real de venda e entrega
+do site, com algumas transições automáticas (função `statusTransitionPatch` em
+`src/lib/domain.ts`, chamada de dentro de `useProspects.ts::update` — dispara
+não importa se o status mudou pelo drag do Kanban, pelo seletor mobile do card
+ou pela ficha):
+
+- Entrar em `contatado` agenda a próxima ação pra 3 dias úteis à frente.
+  Quando o cliente responde, o vendedor move manualmente pra `briefing` —
+  conversa de escopo e do que falta ele enviar.
+- Do briefing: `perdido` (cliente desistiu) ou `aguardando_pendencias`
+  (interesse confirmado — entrar aqui agenda a próxima ação pra 2 dias à
+  frente). Marcar "Documentos recebidos" e preencher o "Sinal recebido (R$)"
+  na ficha avança sozinho pra `refinamento`, igual à regra do protótipo.
+- `refinamento` → `em_analise`: cliente revisa o resultado. Pedidos de
+  alteração voltam pra `refinamento` (contador de rodadas visível no card do
+  Kanban, sem limite bloqueado pelo sistema) até ele aprovar.
+- `em_analise` → `entrega` → `aguardando_pagamento`: finalização técnica
+  (deploy, SEO, GA4 etc.) e cobrança do pagamento final. Preencher o
+  "Pagamento final (R$)" na ficha avança sozinho pra `finalizado`.
+
+O botão "Cobrei de novo" na ficha (visível em `contatado` e
+`aguardando_pendencias`) reagenda a próxima ação pelo mesmo intervalo da
+etapa sem precisar abrir o calendário, e conta as tentativas enquanto o
+prospect está em `contatado`.
 
 ## Ações rápidas
 
