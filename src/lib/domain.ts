@@ -1,4 +1,4 @@
-import type { Prospect, ProspectStatus } from './database.types'
+import type { Prospect, ProspectStatus, ProspectUpdate } from './database.types'
 
 /* ---------------------------------------------------------------- datas ---
    next_action_at e prospected_at sao `date` no Postgres: chegam como
@@ -19,6 +19,18 @@ export function addDaysISO(days: number, from = todayISO()): string {
   const mes = String(date.getMonth() + 1).padStart(2, '0')
   const dia = String(date.getDate()).padStart(2, '0')
   return `${date.getFullYear()}-${mes}-${dia}`
+}
+
+/** Como addDaysISO, mas pulando sábado e domingo ao contar os `days` úteis. */
+export function addBusinessDaysISO(days: number, from = todayISO()): string {
+  let date = from
+  let remaining = days
+  while (remaining > 0) {
+    date = addDaysISO(1, date)
+    const dow = new Date(`${date}T00:00:00`).getDay()
+    if (dow !== 0 && dow !== 6) remaining--
+  }
+  return date
 }
 
 /** Dias entre hoje e uma data ISO. Negativo = passado. */
@@ -359,9 +371,13 @@ export const FUNNEL: ProspectStatus[] = [
   'novo',
   'prototipado',
   'contatado',
-  'respondeu',
-  'negociando',
-  'fechado',
+  'briefing',
+  'aguardando_pendencias',
+  'refinamento',
+  'em_analise',
+  'entrega',
+  'aguardando_pagamento',
+  'finalizado',
 ]
 
 export const CLOSED: ProspectStatus[] = ['perdido', 'descartado']
@@ -372,6 +388,18 @@ export const STATUS_LABEL: Record<ProspectStatus, string> = {
   novo: 'Novo',
   prototipado: 'Prototipado',
   contatado: 'Contatado',
+  briefing: 'Briefing',
+  aguardando_pendencias: 'Aguardando cliente',
+  refinamento: 'Refinamento',
+  em_analise: 'Em análise',
+  entrega: 'Entrega',
+  aguardando_pagamento: 'Aguardando pagamento',
+  finalizado: 'Finalizado',
+  // Mortos: o enum do Postgres não permite remover valor sem recriar o tipo
+  // inteiro. Nenhuma linha da tabela usa mais estes 3 status (migração em
+  // 20260903120100_add_funil_pos_contato_columns_and_backfill.sql); ficam só
+  // pra satisfazer o Record<ProspectStatus, string>, nunca renderizados
+  // (fora de FUNNEL/ALL_STATUS).
   respondeu: 'Respondeu',
   negociando: 'Negociando',
   fechado: 'Fechado',
@@ -384,6 +412,14 @@ export const STATUS_TONE: Record<ProspectStatus, string> = {
   novo: 'bg-rule/60 text-ink',
   prototipado: 'bg-deep/8 text-deep',
   contatado: 'bg-deep/15 text-deep',
+  briefing: 'bg-deep/22 text-deep',
+  aguardando_pendencias: 'bg-deep/30 text-deep',
+  refinamento: 'bg-deep/40 text-deep',
+  em_analise: 'bg-deep/50 text-deep',
+  entrega: 'bg-gold/20 text-gold',
+  aguardando_pagamento: 'bg-gold/35 text-gold',
+  finalizado: 'bg-deep text-card',
+  // Mortos — ver comentário em STATUS_LABEL.
   respondeu: 'bg-deep/30 text-deep',
   negociando: 'bg-gold/25 text-gold',
   fechado: 'bg-deep text-card',
@@ -392,7 +428,35 @@ export const STATUS_TONE: Record<ProspectStatus, string> = {
 }
 
 export function isOpen(p: Prospect): boolean {
-  return !['fechado', 'perdido', 'descartado'].includes(p.status)
+  return !['finalizado', 'perdido', 'descartado'].includes(p.status)
+}
+
+/**
+ * Regras automáticas que dependem só da MUDANÇA de status, chamada de dentro
+ * do único ponto de escrita do app (useProspects.ts::update) — dispara igual
+ * não importa se o status mudou por drag no Kanban, seletor mobile do card ou
+ * pela ficha. Regras que também dependem de outro campo sendo editado junto
+ * (protótipo, documentos+sinal, pagamento final) continuam no Drawer.
+ */
+export function statusTransitionPatch(
+  previous: Prospect,
+  patch: ProspectUpdate,
+): ProspectUpdate {
+  if (!patch.status || patch.status === previous.status) return patch
+  const extra: ProspectUpdate = {}
+  if (patch.status === 'contatado') extra.next_action_at = addBusinessDaysISO(3)
+  if (patch.status === 'aguardando_pendencias') extra.next_action_at = addDaysISO(2)
+  if (previous.status === 'em_analise' && patch.status === 'refinamento') {
+    extra.revision_count = previous.revision_count + 1
+  }
+  const merged = { ...extra, ...patch }
+  // A ficha manda next_action_at em todo salvamento, mesmo sem o usuário ter
+  // mexido no campo: a data automática só perde pra uma data que o usuário
+  // efetivamente mudou (patch.next_action_at diferente do que já estava salvo).
+  if (extra.next_action_at && patch.next_action_at === previous.next_action_at) {
+    merged.next_action_at = extra.next_action_at
+  }
+  return merged
 }
 
 /* ----------------------------------------------------------- fila do dia --- */

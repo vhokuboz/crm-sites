@@ -41,8 +41,9 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
     const antesDoContato = p.status === 'novo' || p.status === 'prototipado'
     void onUpdate(p.id, {
       last_contacted_at: new Date().toISOString(),
-      status: antesDoContato ? 'contatado' : p.status,
-      next_action_at: addDaysISO(3),
+      ...(antesDoContato
+        ? { status: 'contatado' as const }
+        : { next_action_at: addDaysISO(3) }),
     })
   }
 

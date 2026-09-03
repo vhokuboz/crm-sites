@@ -5,6 +5,8 @@ import {
   RISK_LABEL,
   RISK_TONE,
   STATUS_LABEL,
+  addBusinessDaysISO,
+  addDaysISO,
   facebookHandle,
   facebookUrl,
   formatDateBR,
@@ -82,11 +84,21 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
   const [editingWhatsapp, setEditingWhatsapp] = useState(false)
   const [status, setStatus] = useState(p.status)
   const [nextAction, setNextAction] = useState(p.next_action_at ?? '')
+  const [dealValue, setDealValue] = useState(p.deal_value?.toString() ?? '')
+  const [docsReceived, setDocsReceived] = useState(p.docs_received)
+  const [depositPaidAmount, setDepositPaidAmount] = useState(
+    p.deposit_paid_amount?.toString() ?? '',
+  )
+  const [finalPaidAmount, setFinalPaidAmount] = useState(p.final_paid_amount?.toString() ?? '')
   const [saved, setSaved] = useState(false)
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
   const [socialDrafts, setSocialDrafts] = useState<SocialDraft[]>([])
   const [editingSocial, setEditingSocial] = useState<Partial<Record<SocialFieldKey, string>>>({})
 
+  // Só reseta o rascunho inteiro ao trocar de prospect (drawer aberto pra
+  // outra ficha) -- nunca em resposta a um campo de p.* mudando por baixo
+  // (ex. "Cobrei de novo" fazendo onUpdate direto), senão qualquer digitação
+  // não salva em notes/approach/etc. some silenciosamente.
   useEffect(() => {
     setNotes(p.notes ?? '')
     setApproach(p.approach_message ?? '')
@@ -96,9 +108,20 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     setEditingWhatsapp(false)
     setStatus(p.status)
     setNextAction(p.next_action_at ?? '')
+    setDealValue(p.deal_value?.toString() ?? '')
+    setDocsReceived(p.docs_received)
+    setDepositPaidAmount(p.deposit_paid_amount?.toString() ?? '')
+    setFinalPaidAmount(p.final_paid_amount?.toString() ?? '')
     setSocialDrafts([])
     setEditingSocial({})
-  }, [p.id, p.notes, p.approach_message, p.email, p.landing_page_url, p.whatsapp, p.status, p.next_action_at])
+  }, [p.id])
+
+  // "Cobrei de novo" atualiza p.next_action_at direto (sem passar pelo Salvar),
+  // então esse campo precisa continuar refletindo o valor persistido -- sem
+  // arrastar o resto do rascunho junto, ao contrário do efeito acima.
+  useEffect(() => {
+    setNextAction(p.next_action_at ?? '')
+  }, [p.next_action_at])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -130,6 +153,10 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     whatsapp !== (p.whatsapp ?? '') ||
     status !== p.status ||
     nextAction !== (p.next_action_at ?? '') ||
+    dealValue !== (p.deal_value?.toString() ?? '') ||
+    docsReceived !== p.docs_received ||
+    depositPaidAmount !== (p.deposit_paid_amount?.toString() ?? '') ||
+    finalPaidAmount !== (p.final_paid_amount?.toString() ?? '') ||
     socialDrafts.some((d) => d.value.trim()) ||
     Object.keys(editingSocial).length > 0
 
@@ -186,6 +213,10 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
       whatsapp: whatsapp.trim() || null,
       status,
       next_action_at: nextAction || null,
+      deal_value: dealValue.trim() ? Number(dealValue) : null,
+      docs_received: docsReceived,
+      deposit_paid_amount: depositPaidAmount.trim() ? Number(depositPaidAmount) : null,
+      final_paid_amount: finalPaidAmount.trim() ? Number(finalPaidAmount) : null,
     }
     for (const d of socialDrafts) {
       const value = d.value.trim()
@@ -199,6 +230,23 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     // publicada já está pronto para a abordagem, e reclassificar na mão seria
     // uma segunda etapa fácil de esquecer.
     if (patch.landing_page_url && status === 'novo') patch.status = 'prototipado'
+    // Mesma ideia: documentos + sinal recebidos é o próprio sinal de que dá
+    // pra começar o refinamento. Pagamento final registrado fecha o card.
+    if (
+      status === 'aguardando_pendencias' &&
+      patch.docs_received &&
+      patch.deposit_paid_amount &&
+      (patch.docs_received !== p.docs_received || patch.deposit_paid_amount !== p.deposit_paid_amount)
+    ) {
+      patch.status = 'refinamento'
+    }
+    if (
+      status === 'aguardando_pagamento' &&
+      patch.final_paid_amount &&
+      patch.final_paid_amount !== p.final_paid_amount
+    ) {
+      patch.status = 'finalizado'
+    }
 
     const ok = await onUpdate(p.id, patch)
     if (ok) {
@@ -295,6 +343,83 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
             <Field label="Próxima ação">
               <DateField value={nextAction} onChange={setNextAction} />
             </Field>
+          </section>
+
+          {(p.status === 'contatado' || p.status === 'aguardando_pendencias') && (
+            <section>
+              <h3 className="eyebrow">Cobrei de novo</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  if (p.status === 'contatado') {
+                    void onUpdate(p.id, {
+                      next_action_at: addBusinessDaysISO(3),
+                      contact_attempts: p.contact_attempts + 1,
+                    })
+                  } else {
+                    void onUpdate(p.id, { next_action_at: addDaysISO(2) })
+                  }
+                }}
+                className="rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card"
+              >
+                Cobrei de novo
+              </button>
+              {p.status === 'contatado' && (
+                <p className="mt-1.5 font-mono text-[11px] text-muted">
+                  {p.contact_attempts} tentativa{p.contact_attempts === 1 ? '' : 's'}
+                </p>
+              )}
+            </section>
+          )}
+
+          <section className="space-y-3">
+            <h3 className="eyebrow">Negócio</h3>
+            <label className="block">
+              <span className="font-mono text-[11px] text-muted">Valor combinado (R$)</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={dealValue}
+                onChange={(e) => setDealValue(e.target.value)}
+                placeholder="0,00"
+                className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+              />
+            </label>
+            <label className="flex items-center gap-2 text-[13px]">
+              <input
+                type="checkbox"
+                checked={docsReceived}
+                onChange={(e) => setDocsReceived(e.target.checked)}
+              />
+              Documentos recebidos
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <label className="block">
+                <span className="font-mono text-[11px] text-muted">Sinal recebido (R$)</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  value={depositPaidAmount}
+                  onChange={(e) => setDepositPaidAmount(e.target.value)}
+                  placeholder="0,00"
+                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+                />
+              </label>
+              <label className="block">
+                <span className="font-mono text-[11px] text-muted">Pagamento final (R$)</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  value={finalPaidAmount}
+                  onChange={(e) => setFinalPaidAmount(e.target.value)}
+                  placeholder="0,00"
+                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+                />
+              </label>
+            </div>
           </section>
 
           {p.problem && (

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { statusTransitionPatch } from './domain'
 import type { Prospect, ProspectUpdate } from './database.types'
 
 type State = {
@@ -34,18 +35,20 @@ export function useProspects() {
    */
   const update = useCallback(async (id: string, patch: ProspectUpdate) => {
     let previous: Prospect | undefined
+    let finalPatch: ProspectUpdate = patch
 
     setState((s) => {
       previous = s.prospects.find((p) => p.id === id)
+      finalPatch = previous ? statusTransitionPatch(previous, patch) : patch
       return {
         ...s,
-        prospects: s.prospects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+        prospects: s.prospects.map((p) => (p.id === id ? { ...p, ...finalPatch } : p)),
       }
     })
 
     const { data, error } = await supabase
       .from('prospects')
-      .update(patch)
+      .update(finalPatch)
       .eq('id', id)
       .select()
       .single()

@@ -12,9 +12,14 @@ export type Database = {
           business_status: string | null
           city: string
           contact: string | null
+          contact_attempts: number
           created_at: string
+          deal_value: number | null
+          deposit_paid_amount: number | null
+          docs_received: boolean
           email: string | null
           facebook: string | null
+          final_paid_amount: number | null
           google_cid: string | null
           google_last_review_at: string | null
           google_place_id: string | null
@@ -32,6 +37,7 @@ export type Database = {
           preview_images: string[] | null
           problem: string | null
           prospected_at: string
+          revision_count: number
           segment: string
           slug: string | null
           source_url: string | null
@@ -47,9 +53,14 @@ export type Database = {
           business_status?: string | null
           city?: string
           contact?: string | null
+          contact_attempts?: number
           created_at?: string
+          deal_value?: number | null
+          deposit_paid_amount?: number | null
+          docs_received?: boolean
           email?: string | null
           facebook?: string | null
+          final_paid_amount?: number | null
           google_cid?: string | null
           google_last_review_at?: string | null
           google_place_id?: string | null
@@ -67,6 +78,7 @@ export type Database = {
           preview_images?: string[] | null
           problem?: string | null
           prospected_at?: string
+          revision_count?: number
           segment: string
           slug?: string | null
           source_url?: string | null
@@ -87,6 +99,13 @@ export type Database = {
         | 'novo'
         | 'prototipado'
         | 'contatado'
+        | 'briefing'
+        | 'aguardando_pendencias'
+        | 'refinamento'
+        | 'em_analise'
+        | 'entrega'
+        | 'aguardando_pagamento'
+        | 'finalizado'
         | 'respondeu'
         | 'negociando'
         | 'fechado'
