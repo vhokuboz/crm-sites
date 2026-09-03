@@ -449,7 +449,14 @@ export function statusTransitionPatch(
   if (previous.status === 'em_analise' && patch.status === 'refinamento') {
     extra.revision_count = previous.revision_count + 1
   }
-  return { ...extra, ...patch }
+  const merged = { ...extra, ...patch }
+  // A ficha manda next_action_at em todo salvamento, mesmo sem o usuário ter
+  // mexido no campo: a data automática só perde pra uma data que o usuário
+  // efetivamente mudou (patch.next_action_at diferente do que já estava salvo).
+  if (extra.next_action_at && patch.next_action_at === previous.next_action_at) {
+    merged.next_action_at = extra.next_action_at
+  }
+  return merged
 }
 
 /* ----------------------------------------------------------- fila do dia --- */

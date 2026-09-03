@@ -95,6 +95,10 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
   const [socialDrafts, setSocialDrafts] = useState<SocialDraft[]>([])
   const [editingSocial, setEditingSocial] = useState<Partial<Record<SocialFieldKey, string>>>({})
 
+  // Só reseta o rascunho inteiro ao trocar de prospect (drawer aberto pra
+  // outra ficha) -- nunca em resposta a um campo de p.* mudando por baixo
+  // (ex. "Cobrei de novo" fazendo onUpdate direto), senão qualquer digitação
+  // não salva em notes/approach/etc. some silenciosamente.
   useEffect(() => {
     setNotes(p.notes ?? '')
     setApproach(p.approach_message ?? '')
@@ -110,20 +114,14 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     setFinalPaidAmount(p.final_paid_amount?.toString() ?? '')
     setSocialDrafts([])
     setEditingSocial({})
-  }, [
-    p.id,
-    p.notes,
-    p.approach_message,
-    p.email,
-    p.landing_page_url,
-    p.whatsapp,
-    p.status,
-    p.next_action_at,
-    p.deal_value,
-    p.docs_received,
-    p.deposit_paid_amount,
-    p.final_paid_amount,
-  ])
+  }, [p.id])
+
+  // "Cobrei de novo" atualiza p.next_action_at direto (sem passar pelo Salvar),
+  // então esse campo precisa continuar refletindo o valor persistido -- sem
+  // arrastar o resto do rascunho junto, ao contrário do efeito acima.
+  useEffect(() => {
+    setNextAction(p.next_action_at ?? '')
+  }, [p.next_action_at])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -234,10 +232,19 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
     if (patch.landing_page_url && status === 'novo') patch.status = 'prototipado'
     // Mesma ideia: documentos + sinal recebidos é o próprio sinal de que dá
     // pra começar o refinamento. Pagamento final registrado fecha o card.
-    if (status === 'aguardando_pendencias' && patch.docs_received && patch.deposit_paid_amount) {
+    if (
+      status === 'aguardando_pendencias' &&
+      patch.docs_received &&
+      patch.deposit_paid_amount &&
+      (patch.docs_received !== p.docs_received || patch.deposit_paid_amount !== p.deposit_paid_amount)
+    ) {
       patch.status = 'refinamento'
     }
-    if (status === 'aguardando_pagamento' && patch.final_paid_amount) {
+    if (
+      status === 'aguardando_pagamento' &&
+      patch.final_paid_amount &&
+      patch.final_paid_amount !== p.final_paid_amount
+    ) {
       patch.status = 'finalizado'
     }
 

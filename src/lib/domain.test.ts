@@ -58,3 +58,15 @@ test('statusTransitionPatch - status igual ao atual nao aplica regra nenhuma', (
   const patch = statusTransitionPatch(previous, { status: 'contatado', notes: 'y' })
   assert.deepEqual(patch, { status: 'contatado', notes: 'y' })
 })
+
+test('statusTransitionPatch - patch reenvia a mesma next_action_at que ja estava salva: regra automatica vence', () => {
+  const previous = { ...fakeProspect('prototipado'), next_action_at: null } as Prospect
+  const patch = statusTransitionPatch(previous, { status: 'contatado', next_action_at: null })
+  assert.equal(patch.next_action_at, addBusinessDaysISO(3))
+})
+
+test('statusTransitionPatch - patch traz uma next_action_at diferente da que ja estava salva: valor do patch vence', () => {
+  const previous = { ...fakeProspect('prototipado'), next_action_at: null } as Prospect
+  const patch = statusTransitionPatch(previous, { status: 'contatado', next_action_at: '2099-01-01' })
+  assert.equal(patch.next_action_at, '2099-01-01')
+})
