@@ -384,6 +384,16 @@ export const CLOSED: ProspectStatus[] = ['perdido', 'descartado']
 
 export const ALL_STATUS: ProspectStatus[] = [...FUNNEL, ...CLOSED]
 
+/** Da negociação em diante -- antes disso não faz sentido gerar contrato, e negócios mortos (perdido/descartado) ficam de fora. */
+export const CONTRACT_ELIGIBLE_STATUS = new Set<ProspectStatus>([
+  'aguardando_pendencias',
+  'refinamento',
+  'em_analise',
+  'entrega',
+  'aguardando_pagamento',
+  'finalizado',
+])
+
 export const STATUS_LABEL: Record<ProspectStatus, string> = {
   novo: 'Novo',
   prototipado: 'Prototipado',

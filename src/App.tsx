@@ -125,7 +125,7 @@ function Crm({ email }: { email: string }) {
       </main>
 
       {selected && (
-        <Drawer prospect={selected} onUpdate={update} onClose={() => setOpen(null)} />
+        <Drawer prospect={selected} onUpdate={update} onReload={reload} onClose={() => setOpen(null)} />
       )}
 
       {adding && <AddProspectModal onCreated={handleCreated} onClose={() => setAdding(false)} />}

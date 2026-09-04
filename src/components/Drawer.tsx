@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Prospect, ProspectStatus, ProspectUpdate } from '../lib/database.types'
 import {
   ALL_STATUS,
+  CONTRACT_ELIGIBLE_STATUS,
   RISK_LABEL,
   RISK_TONE,
   STATUS_LABEL,
@@ -22,7 +23,10 @@ import {
   websiteUrl,
   whatsappUrl,
 } from '../lib/domain'
+import { buildContractFieldMap, type ContractFormValues } from '../lib/contract'
+import { supabase } from '../lib/supabase'
 import { BusinessStatusBadge } from './BusinessStatusBadge'
+import { ContractModal } from './ContractModal'
 import { GapMeter } from './GapMeter'
 import { ImagePreviewModal } from './ImagePreviewModal'
 import { FacebookIcon, GlobeIcon, InstagramIcon, LinkIcon, QuickActions, WhatsAppIcon } from './QuickActions'
@@ -30,6 +34,7 @@ import { FacebookIcon, GlobeIcon, InstagramIcon, LinkIcon, QuickActions, WhatsAp
 type Props = {
   prospect: Prospect
   onUpdate: (id: string, patch: ProspectUpdate) => Promise<boolean>
+  onReload: () => Promise<void>
   onClose: () => void
 }
 
@@ -74,7 +79,7 @@ function normalizeSocialValue(field: SocialFieldKey, value: string): string {
   }
 }
 
-export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
+export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
   const panel = useRef<HTMLDivElement>(null)
   const [notes, setNotes] = useState(p.notes ?? '')
   const [approach, setApproach] = useState(p.approach_message ?? '')
@@ -94,6 +99,9 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
   const [socialDrafts, setSocialDrafts] = useState<SocialDraft[]>([])
   const [editingSocial, setEditingSocial] = useState<Partial<Record<SocialFieldKey, string>>>({})
+  const [contractModalOpen, setContractModalOpen] = useState(false)
+  const [downloadingContract, setDownloadingContract] = useState(false)
+  const [contractError, setContractError] = useState<string | null>(null)
 
   // Só reseta o rascunho inteiro ao trocar de prospect (drawer aberto pra
   // outra ficha) -- nunca em resposta a um campo de p.* mudando por baixo
@@ -202,6 +210,40 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
       delete next[field]
       return next
     })
+  }
+
+  async function handleDownloadContract() {
+    setDownloadingContract(true)
+    setContractError(null)
+    const { data, error } = await supabase.storage.from('contracts').createSignedUrl(`${p.id}.pdf`, 60)
+    setDownloadingContract(false)
+    if (error || !data) {
+      setContractError(`Não foi possível baixar o contrato: ${error?.message ?? 'erro desconhecido'}`)
+      return
+    }
+    window.open(data.signedUrl, '_blank', 'noopener')
+  }
+
+  async function handleGenerateContract(file: File, form: ContractFormValues, save: boolean) {
+    const body = new FormData()
+    body.append('file', file)
+    body.append('prospect_id', p.id)
+    body.append('fields', JSON.stringify(buildContractFieldMap(p, form)))
+    body.append('save', String(save))
+    if (save) {
+      const saveFields = Object.fromEntries(
+        Object.entries(form).filter(([, value]) => value?.trim()),
+      )
+      body.append('save_fields', JSON.stringify(saveFields))
+    }
+
+    const { error } = await supabase.functions.invoke('generate-contract', { body })
+    if (error) {
+      const context = (error as { context?: Response }).context
+      const errBody = await context?.json().catch(() => null)
+      throw new Error(errBody?.error ?? error.message)
+    }
+    await onReload()
   }
 
   async function saveText() {
@@ -421,6 +463,59 @@ export function Drawer({ prospect: p, onUpdate, onClose }: Props) {
               </label>
             </div>
           </section>
+
+          {CONTRACT_ELIGIBLE_STATUS.has(p.status) && (
+            <section className="space-y-2">
+              <h3 className="eyebrow">Contrato</h3>
+              <div className="flex flex-wrap items-center gap-3">
+                {p.contract_generated_at ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleDownloadContract}
+                      disabled={downloadingContract}
+                      className="rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card disabled:opacity-40"
+                    >
+                      {downloadingContract ? 'Abrindo…' : 'Baixar contrato'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setContractModalOpen(true)}
+                      className="rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card"
+                    >
+                      Refazer contrato
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setContractModalOpen(true)}
+                    className="rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card"
+                  >
+                    Gerar contrato
+                  </button>
+                )}
+              </div>
+              {p.contract_generated_at && (
+                <p className="font-mono text-[11px] text-muted">
+                  Gerado em {formatDateBR(p.contract_generated_at)}
+                </p>
+              )}
+              {contractError && (
+                <p role="alert" className="border-l-2 border-seal pl-3 text-sm text-seal">
+                  {contractError}
+                </p>
+              )}
+            </section>
+          )}
+
+          {contractModalOpen && (
+            <ContractModal
+              prospect={p}
+              onSubmit={handleGenerateContract}
+              onClose={() => setContractModalOpen(false)}
+            />
+          )}
 
           {p.problem && (
             <section>
