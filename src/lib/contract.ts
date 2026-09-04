@@ -36,12 +36,12 @@ function todayBR(): string {
  */
 export function buildContractFieldMap(p: Prospect, form: ContractFormValues): Record<string, string> {
   return {
-    nome_completo: form.legal_name ?? p.legal_name ?? '',
-    cpf_cnpj: form.cpf_cnpj ?? p.cpf_cnpj ?? '',
-    rg: form.rg ?? p.rg ?? '',
+    nome_completo: form.legal_name?.trim() || p.legal_name || '',
+    cpf_cnpj: form.cpf_cnpj?.trim() || p.cpf_cnpj || '',
+    rg: form.rg?.trim() || p.rg || '',
     endereco: p.address ?? '',
     cidade: p.city,
-    cep: form.cep ?? p.cep ?? '',
+    cep: form.cep?.trim() || p.cep || '',
     valor_total: formatMoney(p.deal_value),
     valor_sinal: formatMoney(p.deposit_paid_amount),
     valor_final: formatMoney(p.final_paid_amount),

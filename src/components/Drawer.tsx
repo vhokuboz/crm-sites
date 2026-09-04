@@ -131,14 +131,17 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
     setNextAction(p.next_action_at ?? '')
   }, [p.next_action_at])
 
+  // Com o ImagePreviewModal ou o ContractModal abertos por cima, o Escape deles
+  // tem que fechar só o modal -- não borbulhar pra cá e fechar a ficha inteira
+  // no meio de uma geração de contrato ou de uma navegação de preview.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' && previewIndex === null && !contractModalOpen) onClose()
     }
     document.addEventListener('keydown', onKey)
     panel.current?.focus()
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, previewIndex, contractModalOpen])
 
   // Sem isso, no mobile a rolagem da tela por baixo do drawer (que é só
   // `position: fixed`) faz o Safari/Chrome tratar a ficha como parte do
@@ -221,7 +224,14 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
       setContractError(`Não foi possível baixar o contrato: ${error?.message ?? 'erro desconhecido'}`)
       return
     }
-    window.open(data.signedUrl, '_blank', 'noopener')
+    // window.open depois de um await perde o gesto do usuário -- Safari bloqueia
+    // o popup direto e Chrome é inconsistente. Um link clicado via JS não passa
+    // pelo bloqueador de popup.
+    const link = document.createElement('a')
+    link.href = data.signedUrl
+    link.target = '_blank'
+    link.rel = 'noopener'
+    link.click()
   }
 
   async function handleGenerateContract(file: File, form: ContractFormValues, save: boolean) {
@@ -229,11 +239,15 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
     body.append('file', file)
     body.append('prospect_id', p.id)
     body.append('fields', JSON.stringify(buildContractFieldMap(p, form)))
-    body.append('save', String(save))
-    if (save) {
-      const saveFields = Object.fromEntries(
-        Object.entries(form).filter(([, value]) => value?.trim()),
-      )
+    // No caminho mais comum (Refazer contrato, os 4 campos já salvos) form vem
+    // vazio -- não faz sentido mandar save=true nem save_fields="{}" pro Edge
+    // Function rodar um update({}) inútil em prospects.
+    const saveFields = Object.fromEntries(
+      Object.entries(form).filter(([, value]) => value?.trim()),
+    )
+    const shouldSave = save && Object.keys(saveFields).length > 0
+    body.append('save', String(shouldSave))
+    if (shouldSave) {
       body.append('save_fields', JSON.stringify(saveFields))
     }
 
@@ -480,7 +494,10 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setContractModalOpen(true)}
+                      onClick={() => {
+                        setContractError(null)
+                        setContractModalOpen(true)
+                      }}
                       className="rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card"
                     >
                       Refazer contrato
@@ -489,7 +506,10 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setContractModalOpen(true)}
+                    onClick={() => {
+                      setContractError(null)
+                      setContractModalOpen(true)
+                    }}
                     className="rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card"
                   >
                     Gerar contrato

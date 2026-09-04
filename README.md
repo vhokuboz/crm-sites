@@ -63,6 +63,20 @@ O botão "Cobrei de novo" na ficha (visível em `contatado` e
 etapa sem precisar abrir o calendário, e conta as tentativas enquanto o
 prospect está em `contatado`.
 
+**Gerar contrato** aparece na ficha a partir de `aguardando_pendencias` em
+diante (ver `CONTRACT_ELIGIBLE_STATUS` em `src/lib/domain.ts`). O modal
+(`src/components/ContractModal.tsx`) pede o `.docx` do contrato com
+placeholders (`{{cpf_cnpj}}` etc.) e, se algum dos 4 campos extras
+(`legal_name`, `cpf_cnpj`, `rg`, `cep`) ainda não estiver salvo, os campos que
+faltam — com opção de gravar na ficha junto. O PDF preenchido fica no bucket
+privado `contracts` (dono do CRM apenas), e a ficha passa a mostrar "Baixar
+contrato" / "Refazer contrato" depois da primeira geração. Este repositório só
+cobre o botão/modal e as colunas novas em `prospects` — o preenchimento do
+`.docx` e a conversão pra PDF rodam num serviço à parte (repo
+`contract-service`, Edge Function `generate-contract`), que precisa estar
+implantado para o botão funcionar de fato. Design completo em
+`docs/superpowers/specs/2026-09-04-geracao-contrato-design.md`.
+
 ## Ações rápidas
 
 Cada card (Hoje, Funil, Base e a ficha lateral) traz os atalhos de

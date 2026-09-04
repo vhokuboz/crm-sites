@@ -60,3 +60,18 @@ test('buildContractFieldMap - data_hoje no formato dd/mm/aaaa com ano completo',
   const map = buildContractFieldMap(p, {})
   assert.match(map.data_hoje, /^\d{2}\/\d{2}\/\d{4}$/)
 })
+
+test('buildContractFieldMap - valores do formulário vêm com espaços cortados', () => {
+  const p = fakeProspect({ legal_name: 'Salvo Antes' })
+  const map = buildContractFieldMap(p, {
+    cpf_cnpj: '  000.000.000-00  ',
+    rg: '  1234567  ',
+    cep: '  17000-000  ',
+    legal_name: '   ',
+  })
+  assert.equal(map.cpf_cnpj, '000.000.000-00')
+  assert.equal(map.rg, '1234567')
+  assert.equal(map.cep, '17000-000')
+  // Formulário só espaços conta como "não preenchido" -- cai pro que já está salvo.
+  assert.equal(map.nome_completo, 'Salvo Antes')
+})

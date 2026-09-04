@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { CONTRACT_EXTRA_FIELDS, missingContractFields, type ContractFormValues } from '../lib/contract'
 import type { Prospect } from '../lib/database.types'
 
@@ -16,9 +16,24 @@ export function ContractModal({ prospect, onSubmit, onClose }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Mesmo padrão do ImagePreviewModal: Escape fecha só este modal. O efeito do
+  // Drawer checa `contractModalOpen` antes de fechar a ficha inteira, então os
+  // dois não competem pelo mesmo Escape.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null
-    if (f && !f.name.toLowerCase().endsWith('.docx')) {
+    if (
+      f &&
+      (!f.name.toLowerCase().endsWith('.docx') ||
+        (f.type && f.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'))
+    ) {
       setError('Selecione um arquivo .docx.')
       setFile(null)
       return
