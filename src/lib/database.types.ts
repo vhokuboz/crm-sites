@@ -10,9 +10,12 @@ export type Database = {
           address: string | null
           approach_message: string | null
           business_status: string | null
+          cep: string | null
           city: string
           contact: string | null
           contact_attempts: number
+          contract_generated_at: string | null
+          cpf_cnpj: string | null
           created_at: string
           deal_value: number | null
           deposit_paid_amount: number | null
@@ -30,6 +33,7 @@ export type Database = {
           instagram_last_post_at: string | null
           landing_page_url: string | null
           last_contacted_at: string | null
+          legal_name: string | null
           link_bio: string | null
           name: string
           next_action_at: string | null
@@ -38,6 +42,7 @@ export type Database = {
           problem: string | null
           prospected_at: string
           revision_count: number
+          rg: string | null
           segment: string
           slug: string | null
           source_url: string | null
@@ -51,9 +56,12 @@ export type Database = {
           address?: string | null
           approach_message?: string | null
           business_status?: string | null
+          cep?: string | null
           city?: string
           contact?: string | null
           contact_attempts?: number
+          contract_generated_at?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           deal_value?: number | null
           deposit_paid_amount?: number | null
@@ -71,6 +79,7 @@ export type Database = {
           instagram_last_post_at?: string | null
           landing_page_url?: string | null
           last_contacted_at?: string | null
+          legal_name?: string | null
           link_bio?: string | null
           name: string
           next_action_at?: string | null
@@ -79,6 +88,7 @@ export type Database = {
           problem?: string | null
           prospected_at?: string
           revision_count?: number
+          rg?: string | null
           segment: string
           slug?: string | null
           source_url?: string | null
