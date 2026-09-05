@@ -96,13 +96,15 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'GOOGLE_PLACES_API_KEY não configurada nos secrets da function.' }, 500)
   }
 
-  let googleMapsUrl: string, instagramUrl: string | undefined
+  let googleMapsUrl: string | undefined, instagramUrl: string | undefined
   try {
     ;({ googleMapsUrl, instagramUrl } = await req.json())
   } catch {
     return jsonResponse({ error: 'Corpo inválido, esperado JSON.' }, 400)
   }
-  if (!googleMapsUrl) return jsonResponse({ error: 'googleMapsUrl é obrigatório.' }, 400)
+  if (!googleMapsUrl && !instagramUrl) {
+    return jsonResponse({ error: 'Informe ao menos um link: Google Maps ou Instagram.' }, 400)
+  }
 
   try {
     // Cliente com o JWT de quem chamou (não service_role): o INSERT passa
@@ -113,21 +115,21 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } },
     )
 
-    const place = await findPlace(googleMapsUrl)
+    const place = googleMapsUrl ? await findPlace(googleMapsUrl) : null
     const handle = instagramUrl ? extractInstagramHandle(instagramUrl) : null
 
     const insert = {
-      name: place.displayName?.text ?? '[PREENCHER]',
-      segment: resolveSegment(place.primaryType ?? null, place.primaryTypeDisplayName?.text ?? null),
-      address: place.formattedAddress ?? null,
-      contact: place.internationalPhoneNumber ?? null,
-      website: place.websiteUri ?? null,
-      google_rating: place.rating ?? null,
-      google_reviews_count: place.userRatingCount ?? null,
-      google_place_id: place.id ?? null,
-      business_status: place.businessStatus ?? null,
+      name: place?.displayName?.text ?? (handle ? `@${handle}` : '[PREENCHER]'),
+      segment: resolveSegment(place?.primaryType ?? null, place?.primaryTypeDisplayName?.text ?? null),
+      address: place?.formattedAddress ?? null,
+      contact: place?.internationalPhoneNumber ?? null,
+      website: place?.websiteUri ?? null,
+      google_rating: place?.rating ?? null,
+      google_reviews_count: place?.userRatingCount ?? null,
+      google_place_id: place?.id ?? null,
+      business_status: place?.businessStatus ?? null,
       instagram: handle ? `https://instagram.com/${handle}/` : null,
-      source_url: googleMapsUrl,
+      source_url: googleMapsUrl ?? null,
     }
 
     const { data, error } = await supabase.from('prospects').insert(insert).select().single()

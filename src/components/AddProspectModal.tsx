@@ -15,7 +15,7 @@ type Props = {
  */
 async function invokeAddProspect(googleMapsUrl: string, instagramUrl: string) {
   const { data, error } = await supabase.functions.invoke<{ prospect: Prospect }>('add-prospect', {
-    body: { googleMapsUrl, instagramUrl: instagramUrl || undefined },
+    body: { googleMapsUrl: googleMapsUrl || undefined, instagramUrl: instagramUrl || undefined },
   })
   if (error) {
     const context = (error as { context?: Response }).context
@@ -34,8 +34,12 @@ export function AddProspectModal({ onCreated, onClose }: Props) {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    setBusy(true)
     setError(null)
+    if (!mapsUrl.trim() && !igUrl.trim()) {
+      setError('Informe ao menos um link: Google Maps ou Instagram.')
+      return
+    }
+    setBusy(true)
     try {
       const prospect = await invokeAddProspect(mapsUrl.trim(), igUrl.trim())
       onCreated(prospect)
@@ -70,20 +74,20 @@ export function AddProspectModal({ onCreated, onClose }: Props) {
         </div>
 
         <p className="mt-2 text-[13px] leading-relaxed text-muted">
-          Nome, endereço, nota, avaliações, telefone e site vêm do Google Maps automaticamente.
-          Segmento e problema ficam para revisar na ficha depois.
+          Informe pelo menos um dos links. Quando o Google Maps é informado, nome, endereço,
+          nota, avaliações, telefone e site vêm dele automaticamente. Segmento e problema
+          ficam para revisar na ficha depois.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           <label className="block">
-            <span className="eyebrow">Link do Google Maps *</span>
+            <span className="eyebrow">Link do Google Maps</span>
             <input
               type="url"
-              required
               autoFocus
               value={mapsUrl}
               onChange={(e) => setMapsUrl(e.target.value)}
-              placeholder="https://maps.app.goo.gl/… ou o link da barra de endereço"
+              placeholder="https://maps.app.goo.gl/… ou o link da barra de endereço (opcional)"
               className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 font-mono text-xs placeholder:text-muted/70"
             />
           </label>
