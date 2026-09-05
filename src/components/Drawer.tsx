@@ -81,6 +81,10 @@ function normalizeSocialValue(field: SocialFieldKey, value: string): string {
 
 export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
   const panel = useRef<HTMLDivElement>(null)
+  const [name, setName] = useState(p.name)
+  const [segment, setSegment] = useState(p.segment)
+  const [city, setCity] = useState(p.city)
+  const [editingHeader, setEditingHeader] = useState(false)
   const [notes, setNotes] = useState(p.notes ?? '')
   const [approach, setApproach] = useState(p.approach_message ?? '')
   const [email, setEmail] = useState(p.email ?? '')
@@ -108,6 +112,10 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
   // (ex. "Cobrei de novo" fazendo onUpdate direto), senão qualquer digitação
   // não salva em notes/approach/etc. some silenciosamente.
   useEffect(() => {
+    setName(p.name)
+    setSegment(p.segment)
+    setCity(p.city)
+    setEditingHeader(false)
     setNotes(p.notes ?? '')
     setApproach(p.approach_message ?? '')
     setEmail(p.email ?? '')
@@ -157,6 +165,9 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
   }, [])
 
   const dirty =
+    name !== p.name ||
+    segment !== p.segment ||
+    city !== p.city ||
     notes !== (p.notes ?? '') ||
     approach !== (p.approach_message ?? '') ||
     email !== (p.email ?? '') ||
@@ -260,8 +271,18 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
     await onReload()
   }
 
+  function cancelEditingHeader() {
+    setName(p.name)
+    setSegment(p.segment)
+    setCity(p.city)
+    setEditingHeader(false)
+  }
+
   async function saveText() {
     const patch: ProspectUpdate = {
+      name: name.trim() || p.name,
+      segment: segment.trim() || p.segment,
+      city: city.trim() || p.city,
       notes: notes || null,
       approach_message: approach || null,
       email: email.trim() || null,
@@ -310,6 +331,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
       setSocialDrafts([])
       setEditingSocial({})
       setEditingWhatsapp(false)
+      setEditingHeader(false)
       setTimeout(() => setSaved(false), 1800)
     }
   }
@@ -345,27 +367,65 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
       >
         <header className="sticky top-0 z-10 border-b border-rule bg-paper/95 px-4 py-4 backdrop-blur sm:px-6">
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="eyebrow">{p.segment} · {p.city}</p>
-              <h2 className="mt-1 font-display text-2xl font-semibold leading-tight tracking-tight">
-                {p.name}
-                {lastActivity && (
-                  <span
-                    className={`ml-1.5 font-mono text-sm font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
-                    title={`Última atividade social: ${lastActivity}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
-                  >
-                    · {lastActivity}
-                  </span>
-                )}
-              </h2>
+            <div className="min-w-0 flex-1">
+              {editingHeader ? (
+                <div className="space-y-1.5">
+                  <div className="flex gap-1.5">
+                    <input
+                      autoFocus
+                      value={segment}
+                      onChange={(e) => setSegment(e.target.value)}
+                      placeholder="Segmento"
+                      className="w-1/2 min-w-0 rounded-sm border border-rule bg-card px-2 py-1 font-mono text-xs"
+                    />
+                    <input
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="Cidade"
+                      className="w-1/2 min-w-0 rounded-sm border border-rule bg-card px-2 py-1 font-mono text-xs"
+                    />
+                  </div>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Nome"
+                    className="w-full min-w-0 rounded-sm border border-rule bg-card px-2.5 py-1.5 font-display text-lg font-semibold"
+                  />
+                </div>
+              ) : (
+                <>
+                  <p className="eyebrow">{p.segment} · {p.city}</p>
+                  <h2 className="mt-1 font-display text-2xl font-semibold leading-tight tracking-tight">
+                    {p.name}
+                    {lastActivity && (
+                      <span
+                        className={`ml-1.5 font-mono text-sm font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
+                        title={`Última atividade social: ${lastActivity}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
+                      >
+                        · {lastActivity}
+                      </span>
+                    )}
+                  </h2>
+                </>
+              )}
               <BusinessStatusBadge prospect={p} className="mt-1.5" />
             </div>
-            <button
-              onClick={onClose}
-              className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-[11px] hover:bg-card"
-            >
-              Fechar
-            </button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => (editingHeader ? cancelEditingHeader() : setEditingHeader(true))}
+                aria-label={editingHeader ? 'Cancelar edição' : 'Editar nome, segmento e cidade'}
+                className="shrink-0 rounded-sm border border-rule px-2 py-1 text-muted hover:bg-card hover:text-ink"
+              >
+                {editingHeader ? '×' : <PencilIcon size={13} />}
+              </button>
+              <button
+                onClick={onClose}
+                className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-[11px] hover:bg-card"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
 
           <div className="mt-3">
