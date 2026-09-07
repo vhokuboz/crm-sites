@@ -303,10 +303,12 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
       const trimmed = value.trim()
       patch[field] = trimmed ? normalizeSocialValue(field, trimmed) : null
     }
-    // Registrar o protótipo é o próprio ato de sair de "novo": quem tem página
-    // publicada já está pronto para a abordagem, e reclassificar na mão seria
-    // uma segunda etapa fácil de esquecer.
-    if (patch.landing_page_url && status === 'novo') patch.status = 'prototipado'
+    // Registrar o protótipo é o próprio ato de sair de "triagem": quem tem
+    // página publicada já está pronto para a abordagem, e reclassificar na mão
+    // seria uma segunda etapa fácil de esquecer. Só dispara a partir de
+    // "triagem" (não de "novo") pra garantir que todo prospect passou pela
+    // curadoria manual antes de virar prototipado.
+    if (patch.landing_page_url && status === 'triagem') patch.status = 'prototipado'
     // Mesma ideia: documentos + sinal recebidos é o próprio sinal de que dá
     // pra começar o refinamento. Pagamento final registrado fecha o card.
     if (
@@ -711,9 +713,9 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 </a>
               </p>
             )}
-            {status === 'novo' && landing.trim() && (
+            {status === 'triagem' && landing.trim() && (
               <p className="font-mono text-[11px] text-deep">
-                Ao salvar, o status passa de Novo para Prototipado.
+                Ao salvar, o status passa de Triagem para Prototipado.
               </p>
             )}
             {p.preview_images && p.preview_images.length > 0 && (

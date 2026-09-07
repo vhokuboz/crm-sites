@@ -369,6 +369,7 @@ export function readEmail(p: Prospect): string | null {
 
 export const FUNNEL: ProspectStatus[] = [
   'novo',
+  'triagem',
   'prototipado',
   'contatado',
   'briefing',
@@ -396,6 +397,7 @@ export const CONTRACT_ELIGIBLE_STATUS = new Set<ProspectStatus>([
 
 export const STATUS_LABEL: Record<ProspectStatus, string> = {
   novo: 'Novo',
+  triagem: 'Triagem',
   prototipado: 'Prototipado',
   contatado: 'Contatado',
   briefing: 'Briefing',
@@ -420,6 +422,7 @@ export const STATUS_LABEL: Record<ProspectStatus, string> = {
 /** Peso visual crescente ao longo do funil; encerrados ficam apagados. */
 export const STATUS_TONE: Record<ProspectStatus, string> = {
   novo: 'bg-rule/60 text-ink',
+  triagem: 'bg-rule/80 text-ink',
   prototipado: 'bg-deep/8 text-deep',
   contatado: 'bg-deep/15 text-deep',
   briefing: 'bg-deep/22 text-deep',

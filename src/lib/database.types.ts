@@ -107,6 +107,7 @@ export type Database = {
     Enums: {
       prospect_status:
         | 'novo'
+        | 'triagem'
         | 'prototipado'
         | 'contatado'
         | 'briefing'
