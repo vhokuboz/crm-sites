@@ -10,3 +10,4 @@ tsconfig.tsbuildinfo
 .env*
 supabase/.temp
 .superpowers
+deno.lock
