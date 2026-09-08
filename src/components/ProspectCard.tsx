@@ -22,6 +22,73 @@ type Props = {
   tone?: 'overdue' | 'normal'
 }
 
+/** Envelope com relógio: usado no botão "marcar contato" (contato + próximo
+ *  retorno agendado). Desenhado aqui em vez de vir de um pacote, seguindo o
+ *  padrão dos ícones em QuickActions.tsx. */
+function ContactIcon({ size }: { size: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M16 14v2.2l1.6 1" />
+      <path d="m22 7-.759.484" />
+      <path d="M6.835 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2" />
+      <path d="M7.605 10.567 2 7" />
+      <circle cx="16" cy="16" r="6" />
+    </svg>
+  )
+}
+
+/** Prancheta com seta: usado no botão "copiar abordagem". */
+function ClipboardCopyIcon({ size }: { size: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+      <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v4" />
+      <path d="M21 14H11" />
+      <path d="m15 10-4 4 4 4" />
+    </svg>
+  )
+}
+
+/** Confirmação visual de "copiado", no lugar do texto. */
+function CheckIcon({ size }: { size: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  )
+}
+
 export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }: Props) {
   const [copied, setCopied] = useState(false)
   const proto = prototypeUrl(p)
@@ -38,7 +105,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
 
   /** Registra que houve contato hoje e ja deixa um retorno agendado. */
   function markContacted() {
-    const antesDoContato = p.status === 'novo' || p.status === 'prototipado'
+    const antesDoContato = p.status === 'triagem' || p.status === 'prototipado'
     void onUpdate(p.id, {
       last_contacted_at: new Date().toISOString(),
       ...(antesDoContato
@@ -49,7 +116,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
 
   return (
     <article
-      className={`group relative rounded-sm border bg-card p-4 transition-colors ${
+      className={`group relative @container rounded-sm border bg-card p-4 transition-colors ${
         overdue ? 'border-seal/40' : 'border-rule'
       }`}
     >
@@ -106,16 +173,34 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
           <QuickActions prospect={p} />
         </div>
 
-        {/* Empilhado e ancorado à direita no mobile; em linha a partir de sm. */}
-        <div className="ml-auto flex flex-col items-end gap-1.5 sm:flex-row sm:items-center">
-          {p.approach_message && (
-            <button
-              onClick={copyApproach}
-              className="rounded-sm bg-ink px-2.5 py-1.5 font-mono text-[11px] font-medium text-paper transition-opacity hover:opacity-85"
-            >
-              {copied ? 'Copiado' : 'Copiar abordagem'}
-            </button>
-          )}
+        {/* Empilhado e ancorado à direita quando o card é estreito (ex: grid de 3
+            colunas); em linha quando o card tem largura suficiente. Usa
+            container query em vez de breakpoint de viewport porque a largura
+            do card depende do grid, não da tela. */}
+        <div className="ml-auto flex flex-col items-end gap-1.5 @sm:flex-row @sm:items-center">
+          <div className="flex items-center gap-1.5">
+            {p.approach_message && (
+              <button
+                onClick={copyApproach}
+                title={copied ? 'Copiado' : 'Copiar abordagem'}
+                aria-label="Copiar abordagem"
+                className="rounded-sm bg-ink p-1.5 text-paper transition-opacity hover:opacity-85"
+              >
+                {copied ? <CheckIcon size={13} /> : <ClipboardCopyIcon size={13} />}
+              </button>
+            )}
+
+            {(p.status === 'triagem' || p.status === 'prototipado') && (
+              <button
+                onClick={markContacted}
+                title="Marcar contato"
+                aria-label="Marcar contato"
+                className="rounded-sm border border-rule p-1.5 text-ink transition-colors hover:bg-paper"
+              >
+                <ContactIcon size={13} />
+              </button>
+            )}
+          </div>
 
           {p.status === 'novo' && proto ? (
             <button
@@ -125,13 +210,6 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
               Marcar prototipado
             </button>
           ) : null}
-
-          <button
-            onClick={markContacted}
-            className="rounded-sm border border-rule px-2.5 py-1.5 font-mono text-[11px] text-ink transition-colors hover:bg-paper"
-          >
-            Marcar contato
-          </button>
         </div>
       </div>
     </article>

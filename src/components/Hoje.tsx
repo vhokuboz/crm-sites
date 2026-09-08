@@ -145,7 +145,7 @@ function Section({
           {empty}
         </p>
       ) : (
-        <div className="mt-3 space-y-2.5">{children}</div>
+        <div className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">{children}</div>
       )}
     </section>
   )
@@ -161,7 +161,7 @@ function Funnel({ prospects }: { prospects: Prospect[] }) {
           const n = prospects.filter((p) => p.status === s).length
           return (
             <div key={s} className="flex items-center gap-2">
-              <span className="w-20 shrink-0 font-mono text-[11px] text-muted">
+              <span className="flex-1 min-w-0 truncate font-mono text-[11px] text-muted">
                 {STATUS_LABEL[s]}
               </span>
               <div className="h-4 flex-1 bg-rule/50">
@@ -182,24 +182,42 @@ function Funnel({ prospects }: { prospects: Prospect[] }) {
 }
 
 function Segments({ prospects }: { prospects: Prospect[] }) {
-  const bySegment = new Map<string, number>()
-  for (const p of prospects) bySegment.set(p.segment, (bySegment.get(p.segment) ?? 0) + 1)
-  const rows = [...bySegment.entries()].sort((a, b) => b[1] - a[1])
-  const max = rows[0]?.[1] ?? 1
+  type Row = { seg: string; total: number; lost: number; won: number }
+  const bySegment = new Map<string, Row>()
+  for (const p of prospects) {
+    const row = bySegment.get(p.segment) ?? { seg: p.segment, total: 0, lost: 0, won: 0 }
+    row.total++
+    if (p.status === 'perdido' || p.status === 'descartado') row.lost++
+    else if (p.status === 'finalizado') row.won++
+    bySegment.set(p.segment, row)
+  }
+  // Maior taxa de adesão (finalizados / total) primeiro.
+  const rows = [...bySegment.values()].sort((a, b) => b.won / b.total - a.won / a.total)
 
   return (
     <section>
       <h2 className="eyebrow">Segmentos</h2>
       <div className="mt-3 space-y-2">
-        {rows.map(([seg, n]) => (
-          <div key={seg} className="flex items-center gap-2">
-            <span className="w-20 shrink-0 truncate font-mono text-[11px] text-muted">{seg}</span>
-            <div className="h-4 flex-1 bg-rule/50">
-              <div className="h-full bg-gold/70" style={{ width: `${(n / max) * 100}%` }} />
+        {rows.map((r) => {
+          const open = r.total - r.lost - r.won
+          return (
+            <div key={r.seg} className="flex items-center gap-2">
+              <span className="flex-1 min-w-0 truncate font-mono text-[11px] text-muted">{r.seg}</span>
+              <div className="flex h-4 flex-1 overflow-hidden bg-rule/50">
+                {r.won > 0 && (
+                  <div className="h-full bg-deep" style={{ width: `${(r.won / r.total) * 100}%` }} />
+                )}
+                {open > 0 && (
+                  <div className="h-full bg-gold/70" style={{ width: `${(open / r.total) * 100}%` }} />
+                )}
+                {r.lost > 0 && (
+                  <div className="h-full bg-seal" style={{ width: `${(r.lost / r.total) * 100}%` }} />
+                )}
+              </div>
+              <span className="w-5 shrink-0 text-right font-mono text-[11px] tabular-nums">{r.total}</span>
             </div>
-            <span className="w-5 shrink-0 text-right font-mono text-[11px] tabular-nums">{n}</span>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </section>
   )
