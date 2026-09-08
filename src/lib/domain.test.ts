@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { addBusinessDaysISO, addDaysISO, statusTransitionPatch } from './domain.ts'
+import { addBusinessDaysISO, addDaysISO, closesHostedSite, statusTransitionPatch } from './domain.ts'
 import type { Prospect } from './database.types.ts'
 
 // 2026-09-04 é sexta-feira; 2026-09-05/06 são sábado/domingo.
@@ -19,8 +19,16 @@ test('addBusinessDaysISO - sem fim de semana no meio soma direto', () => {
   assert.equal(addBusinessDaysISO(2, '2026-09-01'), '2026-09-03')
 })
 
-function fakeProspect(status: string, revisionCount = 0): Prospect {
-  return { status, revision_count: revisionCount } as unknown as Prospect
+function fakeProspect(
+  status: string,
+  revisionCount = 0,
+  landingPageUrl: string | null = null,
+): Prospect {
+  return {
+    status,
+    revision_count: revisionCount,
+    landing_page_url: landingPageUrl,
+  } as unknown as Prospect
 }
 
 test('statusTransitionPatch - entrar em contatado agenda 3 dias úteis à frente', () => {
@@ -57,6 +65,36 @@ test('statusTransitionPatch - status igual ao atual nao aplica regra nenhuma', (
   const previous = fakeProspect('contatado')
   const patch = statusTransitionPatch(previous, { status: 'contatado', notes: 'y' })
   assert.deepEqual(patch, { status: 'contatado', notes: 'y' })
+})
+
+test('closesHostedSite - vira perdido com preview publicado: true', () => {
+  const previous = fakeProspect('contatado', 0, 'https://preview.slug.pages.dev')
+  assert.equal(closesHostedSite(previous, { status: 'perdido' }), true)
+})
+
+test('closesHostedSite - vira descartado com preview publicado: true', () => {
+  const previous = fakeProspect('novo', 0, 'https://preview.slug.pages.dev')
+  assert.equal(closesHostedSite(previous, { status: 'descartado' }), true)
+})
+
+test('closesHostedSite - sem landing_page_url: false', () => {
+  const previous = fakeProspect('contatado', 0, null)
+  assert.equal(closesHostedSite(previous, { status: 'perdido' }), false)
+})
+
+test('closesHostedSite - status igual ao atual nao fecha nada: false', () => {
+  const previous = fakeProspect('perdido', 0, 'https://preview.slug.pages.dev')
+  assert.equal(closesHostedSite(previous, { status: 'perdido' }), false)
+})
+
+test('closesHostedSite - vira status que nao encerra (ex: finalizado): false', () => {
+  const previous = fakeProspect('entrega', 0, 'https://preview.slug.pages.dev')
+  assert.equal(closesHostedSite(previous, { status: 'finalizado' }), false)
+})
+
+test('closesHostedSite - patch sem status: false', () => {
+  const previous = fakeProspect('contatado', 0, 'https://preview.slug.pages.dev')
+  assert.equal(closesHostedSite(previous, { notes: 'x' }), false)
 })
 
 test('statusTransitionPatch - patch reenvia a mesma next_action_at que ja estava salva: regra automatica vence', () => {

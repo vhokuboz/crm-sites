@@ -445,6 +445,19 @@ export function isOpen(p: Prospect): boolean {
 }
 
 /**
+ * true quando a mudança de status vai apagar hospedagem publicada de
+ * verdade (preview ou produção) no Cloudflare Pages.
+ */
+export function closesHostedSite(previous: Prospect, patch: ProspectUpdate): boolean {
+  return (
+    !!patch.status &&
+    patch.status !== previous.status &&
+    CLOSED.includes(patch.status) &&
+    !!previous.landing_page_url
+  )
+}
+
+/**
  * Regras automáticas que dependem só da MUDANÇA de status, chamada de dentro
  * do único ponto de escrita do app (useProspects.ts::update) — dispara igual
  * não importa se o status mudou por drag no Kanban, seletor mobile do card ou
