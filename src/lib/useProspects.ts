@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
-import { statusTransitionPatch } from './domain'
+import { closesHostedSite, statusTransitionPatch } from './domain'
 import type { Prospect, ProspectUpdate } from './database.types'
 
 type State = {
@@ -35,6 +35,18 @@ export function useProspects() {
    */
   const update = useCallback(async (id: string, patch: ProspectUpdate) => {
     let previous: Prospect | undefined
+    setState((s) => {
+      previous = s.prospects.find((p) => p.id === id)
+      return s
+    })
+
+    if (previous && closesHostedSite(previous, patch)) {
+      const ok = window.confirm(
+        `Isso vai apagar a hospedagem do preview de "${previous.name}" no Cloudflare Pages. Confirmar?`,
+      )
+      if (!ok) return false
+    }
+
     let finalPatch: ProspectUpdate = patch
 
     setState((s) => {
@@ -69,6 +81,20 @@ export function useProspects() {
       error: null,
       prospects: s.prospects.map((p) => (p.id === id ? data : p)),
     }))
+
+    if (previous && closesHostedSite(previous, patch)) {
+      void supabase.functions
+        .invoke('encerrar-hospedagem', { body: { slug: previous.slug } })
+        .then(({ error: fnError }) => {
+          if (fnError) {
+            setState((s) => ({
+              ...s,
+              error: `Hospedagem não removida automaticamente: ${fnError.message}`,
+            }))
+          }
+        })
+    }
+
     return true
   }, [])
 
