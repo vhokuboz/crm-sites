@@ -158,7 +158,12 @@ function Card({
         ))}
       </select>
 
-      <div className="mt-2">
+      <div className="mt-2 flex items-center justify-between gap-1.5">
+        {p.segment && (
+          <span className="truncate rounded-sm border border-rule px-1 py-0.5 font-mono text-[9px] text-muted">
+            {p.segment}
+          </span>
+        )}
         <QuickActions prospect={p} bare />
       </div>
     </article>
