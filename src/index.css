@@ -40,6 +40,14 @@
     border-radius: 2px;
   }
 
+  /* Tailwind nao aplica cursor:pointer a button por padrao (so <a> ja tem
+     isso nativamente). Cobre todos de uma vez em vez de cursor-pointer
+     espalhado por componente; :disabled fica com o cursor padrao do SO. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+
   ::selection {
     background: color-mix(in oklab, var(--color-gold) 35%, transparent);
   }
