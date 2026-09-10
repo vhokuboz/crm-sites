@@ -35,6 +35,7 @@ export type Database = {
           last_contacted_at: string | null
           legal_name: string | null
           link_bio: string | null
+          monthly_fee: number | null
           name: string
           next_action_at: string | null
           notes: string | null
@@ -81,6 +82,7 @@ export type Database = {
           last_contacted_at?: string | null
           legal_name?: string | null
           link_bio?: string | null
+          monthly_fee?: number | null
           name: string
           next_action_at?: string | null
           notes?: string | null

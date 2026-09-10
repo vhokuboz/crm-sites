@@ -94,6 +94,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
   const [status, setStatus] = useState(p.status)
   const [nextAction, setNextAction] = useState(p.next_action_at ?? '')
   const [dealValue, setDealValue] = useState(p.deal_value?.toString() ?? '')
+  const [monthlyFee, setMonthlyFee] = useState(p.monthly_fee?.toString() ?? '')
   const [docsReceived, setDocsReceived] = useState(p.docs_received)
   const [depositPaidAmount, setDepositPaidAmount] = useState(
     p.deposit_paid_amount?.toString() ?? '',
@@ -125,6 +126,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
     setStatus(p.status)
     setNextAction(p.next_action_at ?? '')
     setDealValue(p.deal_value?.toString() ?? '')
+    setMonthlyFee(p.monthly_fee?.toString() ?? '')
     setDocsReceived(p.docs_received)
     setDepositPaidAmount(p.deposit_paid_amount?.toString() ?? '')
     setFinalPaidAmount(p.final_paid_amount?.toString() ?? '')
@@ -176,6 +178,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
     status !== p.status ||
     nextAction !== (p.next_action_at ?? '') ||
     dealValue !== (p.deal_value?.toString() ?? '') ||
+    monthlyFee !== (p.monthly_fee?.toString() ?? '') ||
     docsReceived !== p.docs_received ||
     depositPaidAmount !== (p.deposit_paid_amount?.toString() ?? '') ||
     finalPaidAmount !== (p.final_paid_amount?.toString() ?? '') ||
@@ -291,6 +294,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
       status,
       next_action_at: nextAction || null,
       deal_value: dealValue.trim() ? Number(dealValue) : null,
+      monthly_fee: monthlyFee.trim() ? Number(monthlyFee) : null,
       docs_received: docsReceived,
       deposit_paid_amount: depositPaidAmount.trim() ? Number(depositPaidAmount) : null,
       final_paid_amount: finalPaidAmount.trim() ? Number(finalPaidAmount) : null,
@@ -501,6 +505,18 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 value={dealValue}
                 onChange={(e) => setDealValue(e.target.value)}
                 placeholder="0,00"
+                className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+              />
+            </label>
+            <label className="block">
+              <span className="font-mono text-[11px] text-muted">Mensalidade (R$)</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={monthlyFee}
+                onChange={(e) => setMonthlyFee(e.target.value)}
+                placeholder="Sem hospedagem com a gente"
                 className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
               />
             </label>
