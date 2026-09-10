@@ -496,30 +496,32 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
 
           <section className="space-y-3">
             <h3 className="eyebrow">Negócio</h3>
-            <label className="block">
-              <span className="font-mono text-[11px] text-muted">Valor combinado (R$)</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                value={dealValue}
-                onChange={(e) => setDealValue(e.target.value)}
-                placeholder="0,00"
-                className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
-              />
-            </label>
-            <label className="block">
-              <span className="font-mono text-[11px] text-muted">Mensalidade (R$)</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                value={monthlyFee}
-                onChange={(e) => setMonthlyFee(e.target.value)}
-                placeholder="Sem hospedagem com a gente"
-                className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
-              />
-            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <label className="block">
+                <span className="font-mono text-[11px] text-muted">Valor combinado (R$)</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  value={dealValue}
+                  onChange={(e) => setDealValue(e.target.value)}
+                  placeholder="0,00"
+                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+                />
+              </label>
+              <label className="block">
+                <span className="font-mono text-[11px] text-muted">Mensalidade (R$)</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  value={monthlyFee}
+                  onChange={(e) => setMonthlyFee(e.target.value)}
+                  placeholder="Sem hospedagem com a gente"
+                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+                />
+              </label>
+            </div>
             <label className="flex items-center gap-2 text-[13px]">
               <input
                 type="checkbox"
