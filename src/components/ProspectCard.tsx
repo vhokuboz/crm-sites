@@ -116,7 +116,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
 
   return (
     <article
-      className={`group relative @container rounded-sm border bg-card p-4 transition-colors ${
+      className={`group relative @container flex h-full flex-col rounded-sm border bg-card p-4 transition-colors ${
         overdue ? 'border-seal/40' : 'border-rule'
       }`}
     >
@@ -168,7 +168,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
         <GapMeter prospect={p} compact />
       </div>
 
-      <div className="mt-3.5 flex flex-wrap items-start gap-3 rule-top pt-3">
+      <div className="mt-auto flex flex-wrap items-start gap-3 rule-top pt-3.5">
         <div className="min-w-0 flex-1">
           <QuickActions prospect={p} />
         </div>
