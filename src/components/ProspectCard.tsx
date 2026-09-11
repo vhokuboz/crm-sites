@@ -5,7 +5,9 @@ import {
   RISK_TONE,
   STATUS_LABEL,
   STATUS_TONE,
+  addBusinessDaysISO,
   addDaysISO,
+  daysFromToday,
   inactivityRisk,
   lastSocialActivityLabel,
   prototypeUrl,
@@ -70,6 +72,28 @@ function ClipboardCopyIcon({ size }: { size: number }) {
   )
 }
 
+/** Seta circular: usado no botão "cobrei de novo". */
+function RepeatIcon({ size }: { size: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 12a9 9 0 0 1 15.3-6.4L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-15.3 6.4L3 16" />
+      <path d="M3 21v-5h5" />
+    </svg>
+  )
+}
+
 /** Confirmação visual de "copiado", no lugar do texto. */
 function CheckIcon({ size }: { size: number }) {
   return (
@@ -113,6 +137,17 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
         : { next_action_at: addDaysISO(3) }),
     })
   }
+
+  /** Empurra a próxima ação e soma uma tentativa, sem sair do card. */
+  function cobrarDeNovo() {
+    void onUpdate(p.id, {
+      next_action_at: addBusinessDaysISO(3),
+      contact_attempts: p.contact_attempts + 1,
+    })
+  }
+
+  const podeCobrarDeNovo =
+    p.status === 'contatado' && !!p.next_action_at && daysFromToday(p.next_action_at) === 0
 
   return (
     <article
@@ -198,6 +233,17 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
                 className="rounded-sm border border-rule p-1.5 text-ink transition-colors hover:bg-paper"
               >
                 <ContactIcon size={13} />
+              </button>
+            )}
+
+            {podeCobrarDeNovo && (
+              <button
+                onClick={cobrarDeNovo}
+                title="Cobrei de novo"
+                aria-label="Cobrei de novo"
+                className="rounded-sm border border-rule p-1.5 text-ink transition-colors hover:bg-paper"
+              >
+                <RepeatIcon size={13} />
               </button>
             )}
           </div>
