@@ -8,6 +8,7 @@ import {
   STATUS_LABEL,
   addBusinessDaysISO,
   addDaysISO,
+  canDiscard,
   facebookHandle,
   facebookUrl,
   formatDateBR,
@@ -27,9 +28,18 @@ import { buildContractFieldMap, type ContractFormValues } from '../lib/contract'
 import { supabase } from '../lib/supabase'
 import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { ContractModal } from './ContractModal'
+import { DiscardModal } from './DiscardModal'
 import { GapMeter } from './GapMeter'
 import { ImagePreviewModal } from './ImagePreviewModal'
-import { FacebookIcon, GlobeIcon, InstagramIcon, LinkIcon, QuickActions, WhatsAppIcon } from './QuickActions'
+import {
+  ArchiveIcon,
+  FacebookIcon,
+  GlobeIcon,
+  InstagramIcon,
+  LinkIcon,
+  QuickActions,
+  WhatsAppIcon,
+} from './QuickActions'
 
 type Props = {
   prospect: Prospect
@@ -107,6 +117,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
   const [contractModalOpen, setContractModalOpen] = useState(false)
   const [downloadingContract, setDownloadingContract] = useState(false)
   const [contractError, setContractError] = useState<string | null>(null)
+  const [discardOpen, setDiscardOpen] = useState(false)
 
   // Só reseta o rascunho inteiro ao trocar de prospect (drawer aberto pra
   // outra ficha) -- nunca em resposta a um campo de p.* mudando por baixo
@@ -141,17 +152,18 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
     setNextAction(p.next_action_at ?? '')
   }, [p.next_action_at])
 
-  // Com o ImagePreviewModal ou o ContractModal abertos por cima, o Escape deles
-  // tem que fechar só o modal -- não borbulhar pra cá e fechar a ficha inteira
-  // no meio de uma geração de contrato ou de uma navegação de preview.
+  // Com o ImagePreviewModal, o ContractModal ou o DiscardModal abertos por
+  // cima, o Escape deles tem que fechar só o modal -- não borbulhar pra cá e
+  // fechar a ficha inteira no meio de uma geração de contrato, uma navegação
+  // de preview ou uma confirmação de descarte.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && previewIndex === null && !contractModalOpen) onClose()
+      if (e.key === 'Escape' && previewIndex === null && !contractModalOpen && !discardOpen) onClose()
     }
     document.addEventListener('keydown', onKey)
     panel.current?.focus()
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose, previewIndex, contractModalOpen])
+  }, [onClose, previewIndex, contractModalOpen, discardOpen])
 
   // Sem isso, no mobile a rolagem da tela por baixo do drawer (que é só
   // `position: fixed`) faz o Safari/Chrome tratar a ficha como parte do
@@ -227,6 +239,16 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
       delete next[field]
       return next
     })
+  }
+
+  /** Fecha a ficha junto se o descarte for confirmado -- não sobra ficha aberta de um prospect morto. */
+  async function handleDiscard(note: string) {
+    const ok = await onUpdate(p.id, {
+      status: 'descartado',
+      next_action_at: null,
+      notes: note ? (p.notes ? `${p.notes}\n\n${note}` : note) : p.notes,
+    })
+    if (ok) onClose()
   }
 
   async function handleDownloadContract() {
@@ -425,6 +447,17 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               >
                 {editingHeader ? '×' : <PencilIcon size={13} />}
               </button>
+              {canDiscard(p) && (
+                <button
+                  type="button"
+                  onClick={() => setDiscardOpen(true)}
+                  title="Descartar"
+                  aria-label="Descartar"
+                  className="shrink-0 rounded-sm border border-seal/40 px-2 py-1 text-seal hover:bg-seal/10"
+                >
+                  <ArchiveIcon size={13} />
+                </button>
+              )}
               <button
                 onClick={onClose}
                 className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-[11px] hover:bg-card"
@@ -615,6 +648,10 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               onSubmit={handleGenerateContract}
               onClose={() => setContractModalOpen(false)}
             />
+          )}
+
+          {discardOpen && (
+            <DiscardModal prospect={p} onConfirm={handleDiscard} onClose={() => setDiscardOpen(false)} />
           )}
 
           {p.problem && (

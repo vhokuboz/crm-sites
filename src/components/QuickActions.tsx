@@ -281,6 +281,17 @@ function PinIcon({ size }: IconProps) {
   )
 }
 
+/** Caixa de arquivo morto: usada no botão "descartar". */
+export function ArchiveIcon({ size }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
+      <rect x="3" y="4" width="18" height="5" rx="1" />
+      <path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9" />
+      <path d="M10 13h4" />
+    </svg>
+  )
+}
+
 function CheckIcon({ size }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>

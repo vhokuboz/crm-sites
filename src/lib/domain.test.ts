@@ -1,7 +1,13 @@
 /// <reference types="node" />
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { addBusinessDaysISO, addDaysISO, closesHostedSite, statusTransitionPatch } from './domain.ts'
+import {
+  addBusinessDaysISO,
+  addDaysISO,
+  canDiscard,
+  closesHostedSite,
+  statusTransitionPatch,
+} from './domain.ts'
 import type { Prospect } from './database.types.ts'
 
 // 2026-09-04 é sexta-feira; 2026-09-05/06 são sábado/domingo.
@@ -95,6 +101,17 @@ test('closesHostedSite - vira status que nao encerra (ex: finalizado): false', (
 test('closesHostedSite - patch sem status: false', () => {
   const previous = fakeProspect('contatado', 0, 'https://preview.slug.pages.dev')
   assert.equal(closesHostedSite(previous, { notes: 'x' }), false)
+})
+
+test('canDiscard - false para novo, triagem, prototipado, perdido e descartado', () => {
+  for (const status of ['novo', 'triagem', 'prototipado', 'perdido', 'descartado']) {
+    assert.equal(canDiscard(fakeProspect(status)), false)
+  }
+})
+
+test('canDiscard - true a partir de contatado em diante', () => {
+  assert.equal(canDiscard(fakeProspect('contatado')), true)
+  assert.equal(canDiscard(fakeProspect('finalizado')), true)
 })
 
 test('statusTransitionPatch - patch reenvia a mesma next_action_at que ja estava salva: regra automatica vence', () => {

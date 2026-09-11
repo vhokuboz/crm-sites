@@ -444,6 +444,11 @@ export function isOpen(p: Prospect): boolean {
   return !['finalizado', 'perdido', 'descartado'].includes(p.status)
 }
 
+/** Descartar só faz sentido depois que já houve contato, e não dá pra descartar duas vezes. */
+export function canDiscard(p: Prospect): boolean {
+  return !['novo', 'triagem', 'prototipado', 'perdido', 'descartado'].includes(p.status)
+}
+
 /**
  * true quando a mudança de status vai apagar hospedagem publicada de
  * verdade (preview ou produção) no Cloudflare Pages.

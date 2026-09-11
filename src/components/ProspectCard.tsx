@@ -7,6 +7,7 @@ import {
   STATUS_TONE,
   addBusinessDaysISO,
   addDaysISO,
+  canDiscard,
   daysFromToday,
   inactivityRisk,
   lastSocialActivityLabel,
@@ -14,8 +15,9 @@ import {
   relativeDay,
 } from '../lib/domain'
 import { BusinessStatusBadge } from './BusinessStatusBadge'
+import { DiscardModal } from './DiscardModal'
 import { GapMeter } from './GapMeter'
-import { QuickActions } from './QuickActions'
+import { ArchiveIcon, QuickActions } from './QuickActions'
 
 type Props = {
   prospect: Prospect
@@ -115,6 +117,7 @@ function CheckIcon({ size }: { size: number }) {
 
 export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }: Props) {
   const [copied, setCopied] = useState(false)
+  const [discardOpen, setDiscardOpen] = useState(false)
   const proto = prototypeUrl(p)
   const overdue = tone === 'overdue'
   const lastActivity = lastSocialActivityLabel(p)
@@ -148,6 +151,15 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
 
   const podeCobrarDeNovo =
     p.status === 'contatado' && !!p.next_action_at && daysFromToday(p.next_action_at) === 0
+
+  /** Anexa a nota digitada no modal, sem apagar o que já estava anotado. */
+  async function discardWithNote(note: string) {
+    await onUpdate(p.id, {
+      status: 'descartado',
+      next_action_at: null,
+      notes: note ? (p.notes ? `${p.notes}\n\n${note}` : note) : p.notes,
+    })
+  }
 
   return (
     <article
@@ -246,6 +258,17 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
                 <RepeatIcon size={13} />
               </button>
             )}
+
+            {canDiscard(p) && (
+              <button
+                onClick={() => setDiscardOpen(true)}
+                title="Descartar"
+                aria-label="Descartar"
+                className="rounded-sm border border-seal/40 p-1.5 text-seal transition-colors hover:bg-seal/10"
+              >
+                <ArchiveIcon size={13} />
+              </button>
+            )}
           </div>
 
           {p.status === 'novo' && proto ? (
@@ -258,6 +281,14 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
           ) : null}
         </div>
       </div>
+
+      {discardOpen && (
+        <DiscardModal
+          prospect={p}
+          onConfirm={discardWithNote}
+          onClose={() => setDiscardOpen(false)}
+        />
+      )}
     </article>
   )
 }
