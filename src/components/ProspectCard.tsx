@@ -241,7 +241,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
                 onClick={cobrarDeNovo}
                 title="Cobrei de novo"
                 aria-label="Cobrei de novo"
-                className="rounded-sm border border-seal/40 p-1.5 text-seal transition-colors hover:bg-seal/10"
+                className="rounded-sm border border-gold/40 p-1.5 text-gold transition-colors hover:bg-gold/10"
               >
                 <RepeatIcon size={13} />
               </button>
