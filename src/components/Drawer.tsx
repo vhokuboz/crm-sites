@@ -11,6 +11,7 @@ import {
   canDiscard,
   facebookHandle,
   facebookUrl,
+  formatBRL,
   formatDateBR,
   formatWhatsapp,
   inactivityRisk,
@@ -532,27 +533,11 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <label className="block">
                 <span className="font-mono text-[11px] text-muted">Valor combinado (R$)</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  value={dealValue}
-                  onChange={(e) => setDealValue(e.target.value)}
-                  placeholder="0,00"
-                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
-                />
+                <CurrencyInput value={dealValue} onChange={setDealValue} placeholder="0,00" />
               </label>
               <label className="block">
                 <span className="font-mono text-[11px] text-muted">Mensalidade (R$)</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  value={monthlyFee}
-                  onChange={(e) => setMonthlyFee(e.target.value)}
-                  placeholder="Sem hospedagem com a gente"
-                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
-                />
+                <CurrencyInput value={monthlyFee} onChange={setMonthlyFee} placeholder="Sem hospedagem com a gente" />
               </label>
             </div>
             <label className="flex items-center gap-2 text-[13px]">
@@ -566,27 +551,11 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <label className="block">
                 <span className="font-mono text-[11px] text-muted">Sinal recebido (R$)</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  value={depositPaidAmount}
-                  onChange={(e) => setDepositPaidAmount(e.target.value)}
-                  placeholder="0,00"
-                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
-                />
+                <CurrencyInput value={depositPaidAmount} onChange={setDepositPaidAmount} placeholder="0,00" />
               </label>
               <label className="block">
                 <span className="font-mono text-[11px] text-muted">Pagamento final (R$)</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  value={finalPaidAmount}
-                  onChange={(e) => setFinalPaidAmount(e.target.value)}
-                  placeholder="0,00"
-                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
-                />
+                <CurrencyInput value={finalPaidAmount} onChange={setFinalPaidAmount} placeholder="0,00" />
               </label>
             </div>
           </section>
@@ -1068,5 +1037,42 @@ function CalendarIcon() {
       <rect x="3" y="5" width="18" height="16" rx="2" />
       <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
     </svg>
+  )
+}
+
+function CurrencyInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.target.value
+    const normalized = input.replace(/[^\d,-]/g, '').replace(',', '.')
+    onChange(normalized)
+  }
+
+  function handleBlur() {
+    if (inputRef.current) {
+      inputRef.current.value = formatBRL(value)
+    }
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      inputMode="decimal"
+      defaultValue={formatBRL(value)}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      placeholder={placeholder}
+      className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+    />
   )
 }

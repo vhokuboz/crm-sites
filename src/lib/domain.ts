@@ -47,6 +47,13 @@ export function formatDateBR(iso: string | null): string {
   return `${d}/${m}/${a.slice(2)}`
 }
 
+export function formatBRL(value: string | number): string {
+  if (!value && value !== 0) return ''
+  const num = typeof value === 'string' ? parseFloat(value) : value
+  if (Number.isNaN(num)) return ''
+  return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num)
+}
+
 /** "hoje", "ontem", "em 3 dias", "há 2 dias" — o texto que a fila do dia usa. */
 export function relativeDay(iso: string): string {
   const diff = daysFromToday(iso)
