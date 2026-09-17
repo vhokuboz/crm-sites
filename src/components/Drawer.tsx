@@ -460,6 +460,14 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 </button>
               )}
               <button
+                onClick={saveText}
+                disabled={!dirty}
+                className="rounded-sm bg-ink px-3 py-1 font-display text-xs font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
+              >
+                Salvar
+              </button>
+              {saved && <span className="font-mono text-[11px] text-deep">Salvo</span>}
+              <button
                 onClick={onClose}
                 className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-[11px] hover:bg-card"
               >
@@ -887,17 +895,6 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               className="mt-2 w-full resize-y rounded-sm border border-rule bg-card p-3 text-[13px] leading-relaxed placeholder:text-muted/70"
             />
           </section>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={saveText}
-              disabled={!dirty}
-              className="rounded-sm bg-ink px-4 py-2 font-display text-sm font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
-            >
-              Salvar alterações
-            </button>
-            {saved && <span className="font-mono text-[11px] text-deep">Salvo</span>}
-          </div>
 
           <footer className="rule-top pt-4 font-mono text-[11px] text-muted">
             Prospectado em {formatDateBR(p.prospected_at)}
