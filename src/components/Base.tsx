@@ -178,7 +178,7 @@ export function Base({ onOpen }: Props) {
                         {formatDateBR(p.next_action_at)}
                       </td>
                       {/* Os atalhos não devem abrir a ficha por baixo deles. */}
-                      <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-3 py-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <QuickActions prospect={p} />
                       </td>
                     </tr>
