@@ -59,14 +59,15 @@ fora do real. Ajustável pela ficha. Conferir os poucos casos existentes antes d
 
 ## Estado derivado
 
-`serviceState(p, hoje = todayISO())` em `src/lib/domain.ts`, função pura com testes em
-`domain.test.ts`. Só se aplica a `status === 'finalizado'` com `service_started_at`.
+`serviceState(p, hoje = todayISO())` em `src/lib/service.ts` (arquivo novo: `domain.ts` já
+passa de 500 linhas), função pura com testes em `service.test.ts`. Só se aplica a `status === 'finalizado'` com `service_started_at`.
 Ordem de avaliação (a primeira regra que bater vence):
 
 1. `service_ended_at` preenchida → `encerrado`
 2. `suspended_at` preenchida → `suspenso`
-3. `paid_until` nulo e `hoje <= free_until` → `isento`, ou `renovacao` se faltarem 30 dias
-   ou menos para `free_until`
+3. `hoje <= free_until` → `isento`, ou `renovacao` se `paid_until` ainda for nulo (cliente
+   não decidiu) e faltarem 30 dias ou menos para `free_until`. Quem já optou por continuar
+   (`paid_until` preenchido) segue `isento` até o fim da isenção.
 4. Demais casos: vencimento = `paid_until ?? free_until` (cliente que não respondeu à
    renovação vence em `free_until`); dias de atraso = `hoje - vencimento`
    - atraso ≤ 0 → `ativo`
