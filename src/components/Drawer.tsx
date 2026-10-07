@@ -26,12 +26,20 @@ import {
   whatsappUrl,
 } from '../lib/domain'
 import { buildContractFieldMap, type ContractFormValues } from '../lib/contract'
+import {
+  SERVICE_LABEL,
+  SERVICE_TONE,
+  reminderLabel,
+  serviceDateLabel,
+  serviceState,
+} from '../lib/service'
 import { supabase } from '../lib/supabase'
 import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { ContractModal } from './ContractModal'
 import { DiscardModal } from './DiscardModal'
 import { GapMeter } from './GapMeter'
 import { ImagePreviewModal } from './ImagePreviewModal'
+import { ServiceActions } from './ServiceActions'
 import {
   ArchiveIcon,
   FacebookIcon,
@@ -119,6 +127,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
   const [downloadingContract, setDownloadingContract] = useState(false)
   const [contractError, setContractError] = useState<string | null>(null)
   const [discardOpen, setDiscardOpen] = useState(false)
+  const [serviceModalOpen, setServiceModalOpen] = useState(false)
 
   // Só reseta o rascunho inteiro ao trocar de prospect (drawer aberto pra
   // outra ficha) -- nunca em resposta a um campo de p.* mudando por baixo
@@ -159,12 +168,12 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
   // de preview ou uma confirmação de descarte.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && previewIndex === null && !contractModalOpen && !discardOpen) onClose()
+      if (e.key === 'Escape' && previewIndex === null && !contractModalOpen && !discardOpen && !serviceModalOpen) onClose()
     }
     document.addEventListener('keydown', onKey)
     panel.current?.focus()
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose, previewIndex, contractModalOpen, discardOpen])
+  }, [onClose, previewIndex, contractModalOpen, discardOpen, serviceModalOpen])
 
   // Sem isso, no mobile a rolagem da tela por baixo do drawer (que é só
   // `position: fixed`) faz o Safari/Chrome tratar a ficha como parte do
@@ -377,6 +386,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
   const phones = parsePhones(p.contact).filter((ph) => !p.whatsapp || !ph.isMobile)
   const lastActivity = lastSocialActivityLabel(p)
   const risk = inactivityRisk(p)
+  const service = serviceState(p)
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -535,6 +545,25 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                   {p.contact_attempts} tentativa{p.contact_attempts === 1 ? '' : 's'}
                 </p>
               )}
+            </section>
+          )}
+
+          {service && (
+            <section className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <h3 className="eyebrow">Serviço</h3>
+                <span
+                  className={`rounded-sm px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${SERVICE_TONE[service]}`}
+                >
+                  {SERVICE_LABEL[service]}
+                </span>
+              </div>
+              <p className="font-mono text-[11px] text-muted">
+                {[serviceDateLabel(p), reminderLabel(p), p.monthly_fee ? `R$ ${p.monthly_fee}/mês` : null]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+              <ServiceActions prospect={p} onUpdate={onUpdate} onModalChange={setServiceModalOpen} />
             </section>
           )}
 
