@@ -4,8 +4,10 @@ import assert from 'node:assert/strict'
 import {
   addBusinessDaysISO,
   addDaysISO,
+  addMonthsISO,
   canDiscard,
   closesHostedSite,
+  daysBetweenISO,
   statusTransitionPatch,
 } from './domain.ts'
 import type { Prospect } from './database.types.ts'
@@ -124,4 +126,51 @@ test('statusTransitionPatch - patch traz uma next_action_at diferente da que ja 
   const previous = { ...fakeProspect('prototipado'), next_action_at: null } as Prospect
   const patch = statusTransitionPatch(previous, { status: 'contatado', next_action_at: '2099-01-01' })
   assert.equal(patch.next_action_at, '2099-01-01')
+})
+
+test('addMonthsISO - soma 6 meses mantendo o dia', () => {
+  assert.equal(addMonthsISO(6, '2026-09-12'), '2027-03-12')
+})
+
+test('addMonthsISO - dia 31 cai no último dia do mês mais curto', () => {
+  assert.equal(addMonthsISO(1, '2026-01-31'), '2026-02-28')
+})
+
+test('addMonthsISO - ano bissexto', () => {
+  assert.equal(addMonthsISO(1, '2028-01-31'), '2028-02-29')
+})
+
+test('addMonthsISO - vira o ano', () => {
+  assert.equal(addMonthsISO(1, '2026-12-15'), '2027-01-15')
+})
+
+test('daysBetweenISO - positivo quando "to" é depois, negativo quando antes', () => {
+  assert.equal(daysBetweenISO('2027-02-10', '2027-03-12'), 30)
+  assert.equal(daysBetweenISO('2026-09-05', '2026-09-01'), -4)
+})
+
+function fakeService(patch: Record<string, unknown>): Prospect {
+  return { status: 'finalizado', landing_page_url: 'https://x.pages.dev', ...patch } as unknown as Prospect
+}
+
+test('closesHostedSite - suspender serviço com site publicado: true', () => {
+  assert.equal(closesHostedSite(fakeService({}), { suspended_at: '2027-04-20' }), true)
+})
+
+test('closesHostedSite - encerrar serviço com site publicado: true', () => {
+  assert.equal(closesHostedSite(fakeService({}), { service_ended_at: '2027-04-20' }), true)
+})
+
+test('closesHostedSite - encerrar depois de suspenso: false (site já foi derrubado)', () => {
+  const previous = fakeService({ suspended_at: '2027-04-20' })
+  assert.equal(closesHostedSite(previous, { service_ended_at: '2027-05-01' }), false)
+})
+
+test('closesHostedSite - reativar (suspended_at null): false', () => {
+  const previous = fakeService({ suspended_at: '2027-04-20' })
+  assert.equal(closesHostedSite(previous, { suspended_at: null }), false)
+})
+
+test('closesHostedSite - suspender sem landing_page_url: false', () => {
+  assert.equal(closesHostedSite(fakeService({ landing_page_url: null }), { suspended_at: '2027-04-20' }), false)
 })

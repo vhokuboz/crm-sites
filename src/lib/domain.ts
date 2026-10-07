@@ -33,12 +33,30 @@ export function addBusinessDaysISO(days: number, from = todayISO()): string {
   return date
 }
 
-/** Dias entre hoje e uma data ISO. Negativo = passado. */
-export function daysFromToday(iso: string): number {
-  const [a1, m1, d1] = todayISO().split('-').map(Number)
-  const [a2, m2, d2] = iso.split('-').map(Number)
+/**
+ * Soma meses mantendo o dia; se o mês de destino é mais curto, cai no último
+ * dia dele (31/01 + 1 = 28/02).
+ */
+export function addMonthsISO(months: number, from = todayISO()): string {
+  const [a, m, d] = from.split('-').map(Number)
+  const lastDay = new Date(a, m - 1 + months + 1, 0).getDate()
+  const date = new Date(a, m - 1 + months, Math.min(d, lastDay))
+  const mes = String(date.getMonth() + 1).padStart(2, '0')
+  const dia = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${mes}-${dia}`
+}
+
+/** Dias de `from` até `to` (ambas ISO). Negativo = `to` antes de `from`. */
+export function daysBetweenISO(from: string, to: string): number {
+  const [a1, m1, d1] = from.split('-').map(Number)
+  const [a2, m2, d2] = to.split('-').map(Number)
   const ms = Date.UTC(a2, m2 - 1, d2) - Date.UTC(a1, m1 - 1, d1)
   return Math.round(ms / 86_400_000)
+}
+
+/** Dias entre hoje e uma data ISO. Negativo = passado. */
+export function daysFromToday(iso: string): number {
+  return daysBetweenISO(todayISO(), iso)
 }
 
 export function formatDateBR(iso: string | null): string {
@@ -457,16 +475,18 @@ export function canDiscard(p: Prospect): boolean {
 }
 
 /**
- * true quando a mudança de status vai apagar hospedagem publicada de
- * verdade (preview ou produção) no Cloudflare Pages.
+ * true quando a mudança vai apagar hospedagem publicada de verdade (preview
+ * ou produção) no Cloudflare Pages: virar perdido/descartado, ou suspender/
+ * encerrar o serviço de um cliente. Se o site já foi derrubado (suspenso),
+ * não há o que apagar de novo.
  */
 export function closesHostedSite(previous: Prospect, patch: ProspectUpdate): boolean {
-  return (
-    !!patch.status &&
-    patch.status !== previous.status &&
-    CLOSED.includes(patch.status) &&
-    !!previous.landing_page_url
-  )
+  if (!previous.landing_page_url) return false
+  const closesByStatus =
+    !!patch.status && patch.status !== previous.status && CLOSED.includes(patch.status)
+  const alreadyDown = !!previous.suspended_at || !!previous.service_ended_at
+  const closesByService = !alreadyDown && (!!patch.suspended_at || !!patch.service_ended_at)
+  return closesByStatus || closesByService
 }
 
 /**
