@@ -7,10 +7,11 @@ import { Login } from './components/Login'
 import { Hoje } from './components/Hoje'
 import { Funil } from './components/Funil'
 import { Base } from './components/Base'
+import { Clientes } from './components/Clientes'
 import { Drawer } from './components/Drawer'
 import { AddProspectModal } from './components/AddProspectModal'
 
-const TABS = ['Hoje', 'Funil', 'Base'] as const
+const TABS = ['Hoje', 'Funil', 'Clientes', 'Base'] as const
 type Tab = (typeof TABS)[number]
 
 export default function App() {
@@ -119,6 +120,8 @@ function Crm({ email }: { email: string }) {
           <Hoje prospects={prospects} onUpdate={update} onOpen={setOpen} />
         ) : tab === 'Funil' ? (
           <Funil prospects={prospects} onUpdate={update} onOpen={setOpen} />
+        ) : tab === 'Clientes' ? (
+          <Clientes prospects={prospects} onUpdate={update} onOpen={setOpen} />
         ) : (
           <Base onOpen={setOpen} />
         )}

@@ -8,6 +8,7 @@ import {
   readGap,
 } from '../lib/domain'
 import { ProspectCard } from './ProspectCard'
+import { ServicoFila } from './ServicoFila'
 
 type Props = {
   prospects: Prospect[]
@@ -41,6 +42,8 @@ export function Hoje({ prospects, onUpdate, onOpen }: Props) {
       </aside>
 
       <div className="min-w-0 space-y-8 lg:col-start-1 lg:row-start-2">
+        <ServicoFila prospects={prospects} onUpdate={onUpdate} onOpen={onOpen} />
+
         <Section
           title="Atrasados"
           count={queue.overdue.length}

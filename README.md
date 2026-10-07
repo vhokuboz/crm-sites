@@ -58,6 +58,24 @@ ou pela ficha):
   (deploy, SEO, GA4 etc.) e cobrança do pagamento final. Preencher o
   "Pagamento final (R$)" na ficha avança sozinho pra `finalizado`.
 
+### Depois de finalizado: o ciclo do serviço
+
+`finalizado` abre o ciclo do serviço (`service_started_at`): **6 meses de
+mensalidade isenta** (`free_until`) e, se o cliente optar por continuar,
+mensalidade (`monthly_fee`) cobrada por Pix manual. O estado — `isento`,
+`renovacao` (30 dias antes do fim da isenção), `ativo`, `a_cobrar`,
+`suspender` (mais de 7 dias de atraso), `suspenso`, `encerrado` — é **derivado
+das datas** em `src/lib/service.ts` (`serviceState`), nunca gravado.
+
+- "Vai continuar" define a mensalidade; "Pix recebido" soma 1 mês a `paid_until`;
+  "Lembrei o cliente" só marca `last_reminded_at`.
+- Aos 7 dias de atraso o cliente vira `suspender`: o sistema só avisa. "Suspender
+  site" (confirmação dupla) grava `suspended_at` e chama `encerrar-hospedagem`.
+  "Reativar" só limpa a marca: depois é preciso rodar o deploy manual no
+  `agent-okaisites`.
+- Aba **Clientes** lista tudo por urgência; a aba **Hoje** mostra a seção
+  "Serviço" com renovações, cobranças e suspensões pendentes.
+
 O botão "Cobrei de novo" na ficha (visível em `contatado` e
 `aguardando_pendencias`) reagenda a próxima ação pelo mesmo intervalo da
 etapa sem precisar abrir o calendário, e conta as tentativas enquanto o
