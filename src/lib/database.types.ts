@@ -23,6 +23,12 @@ export type Database = {
           email: string | null
           facebook: string | null
           final_paid_amount: number | null
+          free_until: string | null
+          last_reminded_at: string | null
+          paid_until: string | null
+          service_ended_at: string | null
+          service_started_at: string | null
+          suspended_at: string | null
           google_cid: string | null
           google_last_review_at: string | null
           google_place_id: string | null
@@ -70,6 +76,12 @@ export type Database = {
           email?: string | null
           facebook?: string | null
           final_paid_amount?: number | null
+          free_until?: string | null
+          last_reminded_at?: string | null
+          paid_until?: string | null
+          service_ended_at?: string | null
+          service_started_at?: string | null
+          suspended_at?: string | null
           google_cid?: string | null
           google_last_review_at?: string | null
           google_place_id?: string | null
