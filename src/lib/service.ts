@@ -1,5 +1,5 @@
-import type { Prospect } from './database.types.ts'
-import { daysBetweenISO, todayISO } from './domain.ts'
+import type { Prospect, ProspectUpdate } from './database.types.ts'
+import { addMonthsISO, daysBetweenISO, todayISO } from './domain.ts'
 
 /* ----------------------------------------------------------------- serviço ---
    Depois de `finalizado` o cliente tem 6 meses de mensalidade isenta; passado
@@ -44,4 +44,34 @@ export function serviceState(p: ServiceInput, hoje = todayISO()): ServiceState |
   const atraso = daysBetweenISO(p.paid_until ?? p.free_until, hoje)
   if (atraso <= 0) return 'ativo'
   return atraso <= SUSPEND_AFTER_DAYS ? 'a_cobrar' : 'suspender'
+}
+
+/* ---------------------------------------------------------------- patches --- */
+
+/**
+ * Abre o ciclo do serviço na primeira vez que o prospect vira `finalizado`.
+ * Roda depois de `statusTransitionPatch`, dentro de `useProspects.ts::update`,
+ * então vale igual venha da ficha ou do Kanban. O que o patch já traz vence.
+ */
+export function serviceStartPatch(previous: Prospect, patch: ProspectUpdate): ProspectUpdate {
+  if (patch.status !== 'finalizado' || previous.status === 'finalizado' || previous.service_started_at) {
+    return patch
+  }
+  const inicio = todayISO()
+  return { service_started_at: inicio, free_until: addMonthsISO(FREE_MONTHS, inicio), ...patch }
+}
+
+/** Cliente decidiu continuar: guarda a mensalidade; a primeira cobrança vence quando a isenção acaba. */
+export function continuePatch(p: Pick<Prospect, 'free_until'>, fee: number): ProspectUpdate {
+  return { monthly_fee: fee, paid_until: p.free_until }
+}
+
+/**
+ * Pix recebido: soma 1 mês ao vencimento anterior (e não à data do pagamento,
+ * pra não deslocar o ciclo).
+ * ponytail: 31/01 -> 28/02 -> 28/03 desliza o dia; aceitável pra cobrança manual.
+ */
+export function pixReceivedPatch(p: Pick<Prospect, 'paid_until' | 'free_until'>): ProspectUpdate {
+  const base = p.paid_until ?? p.free_until
+  return base ? { paid_until: addMonthsISO(1, base) } : {}
 }

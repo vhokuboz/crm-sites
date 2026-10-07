@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { closesHostedSite, statusTransitionPatch } from './domain'
+import { serviceStartPatch } from './service'
 import type { Prospect, ProspectUpdate } from './database.types'
 
 type State = {
@@ -42,7 +43,7 @@ export function useProspects() {
 
     if (previous && closesHostedSite(previous, patch)) {
       const ok = window.confirm(
-        `Isso vai apagar a hospedagem do preview de "${previous.name}" no Cloudflare Pages. Confirmar?`,
+        `Isso vai apagar a hospedagem do site de "${previous.name}" no Cloudflare Pages. Confirmar?`,
       )
       if (!ok) return false
     }
@@ -51,7 +52,7 @@ export function useProspects() {
 
     setState((s) => {
       previous = s.prospects.find((p) => p.id === id)
-      finalPatch = previous ? statusTransitionPatch(previous, patch) : patch
+      finalPatch = previous ? serviceStartPatch(previous, statusTransitionPatch(previous, patch)) : patch
       return {
         ...s,
         prospects: s.prospects.map((p) => (p.id === id ? { ...p, ...finalPatch } : p)),

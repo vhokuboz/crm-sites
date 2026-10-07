@@ -1,7 +1,15 @@
 /// <reference types="node" />
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { serviceState, type ServiceInput } from './service.ts'
+import {
+  continuePatch,
+  pixReceivedPatch,
+  serviceStartPatch,
+  serviceState,
+  type ServiceInput,
+} from './service.ts'
+import { addMonthsISO, todayISO } from './domain.ts'
+import type { Prospect } from './database.types.ts'
 
 // Isenção de 6 meses: serviço começou em 12/09/2026, isento até 12/03/2027.
 function svc(over: Partial<ServiceInput> = {}): ServiceInput {
@@ -65,4 +73,51 @@ test('serviceState - suspenso e encerrado vencem qualquer data; encerrado vence 
     serviceState(svc({ suspended_at: '2027-04-20', service_ended_at: '2027-05-01' }), '2027-06-01'),
     'encerrado',
   )
+})
+
+function prev(over: Record<string, unknown>): Prospect {
+  return { status: 'aguardando_pagamento', service_started_at: null, ...over } as unknown as Prospect
+}
+
+test('serviceStartPatch - virar finalizado pela primeira vez abre o ciclo de 6 meses', () => {
+  const patch = serviceStartPatch(prev({}), { status: 'finalizado' })
+  assert.equal(patch.service_started_at, todayISO())
+  assert.equal(patch.free_until, addMonthsISO(6, todayISO()))
+  assert.equal(patch.status, 'finalizado')
+})
+
+test('serviceStartPatch - não sobrescreve ciclo já aberto nem refaz quando já era finalizado', () => {
+  const aberto = prev({ service_started_at: '2026-09-12' })
+  assert.deepEqual(serviceStartPatch(aberto, { status: 'finalizado' }), { status: 'finalizado' })
+  const jaFinal = prev({ status: 'finalizado' })
+  assert.deepEqual(serviceStartPatch(jaFinal, { status: 'finalizado' }), { status: 'finalizado' })
+})
+
+test('serviceStartPatch - patch sem status ou para outro status: intacto', () => {
+  assert.deepEqual(serviceStartPatch(prev({}), { notes: 'x' }), { notes: 'x' })
+  assert.deepEqual(serviceStartPatch(prev({}), { status: 'entrega' }), { status: 'entrega' })
+})
+
+test('serviceStartPatch - free_until explícito no patch vence', () => {
+  const patch = serviceStartPatch(prev({}), { status: 'finalizado', free_until: '2030-01-01' })
+  assert.equal(patch.free_until, '2030-01-01')
+})
+
+test('continuePatch - grava a mensalidade e cobra a partir do fim da isenção', () => {
+  assert.deepEqual(continuePatch({ free_until: '2027-03-12' }, 89.9), {
+    monthly_fee: 89.9,
+    paid_until: '2027-03-12',
+  })
+})
+
+test('pixReceivedPatch - soma 1 mês a partir do vencimento anterior, não de hoje', () => {
+  assert.deepEqual(pixReceivedPatch({ paid_until: '2027-04-12', free_until: '2027-03-12' }), {
+    paid_until: '2027-05-12',
+  })
+})
+
+test('pixReceivedPatch - sem paid_until parte do fim da isenção', () => {
+  assert.deepEqual(pixReceivedPatch({ paid_until: null, free_until: '2027-03-12' }), {
+    paid_until: '2027-04-12',
+  })
 })
