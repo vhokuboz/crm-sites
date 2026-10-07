@@ -4,8 +4,13 @@ import assert from 'node:assert/strict'
 import {
   continuePatch,
   pixReceivedPatch,
+  reminderLabel,
+  serviceDateLabel,
+  serviceGroups,
+  serviceQueue,
   serviceStartPatch,
   serviceState,
+  serviceSummary,
   type ServiceInput,
 } from './service.ts'
 import { addMonthsISO, todayISO } from './domain.ts'
@@ -120,4 +125,64 @@ test('pixReceivedPatch - sem paid_until parte do fim da isenção', () => {
   assert.deepEqual(pixReceivedPatch({ paid_until: null, free_until: '2027-03-12' }), {
     paid_until: '2027-04-12',
   })
+})
+
+test('serviceDateLabel - cada estado diz a data que importa', () => {
+  assert.equal(serviceDateLabel(svc(), '2026-12-01'), 'isento até 12/03/27')
+  const pago = svc({ paid_until: '2027-04-12' })
+  assert.equal(serviceDateLabel(pago, '2027-04-07'), 'vence em 5 dias')
+  assert.equal(serviceDateLabel(pago, '2027-04-12'), 'vence hoje')
+  assert.equal(serviceDateLabel(pago, '2027-04-13'), 'venceu há 1 dia')
+  assert.equal(serviceDateLabel(pago, '2027-04-15'), 'venceu há 3 dias')
+  assert.equal(serviceDateLabel(svc({ suspended_at: '2027-04-20' }), '2027-05-01'), 'suspenso em 20/04/27')
+  assert.equal(serviceDateLabel(svc({ service_ended_at: '2027-05-01' }), '2027-06-01'), 'encerrado em 01/05/27')
+})
+
+test('reminderLabel - hoje, há N dias e sem lembrete', () => {
+  assert.equal(reminderLabel({ last_reminded_at: null }, '2027-04-15'), null)
+  assert.equal(reminderLabel({ last_reminded_at: '2027-04-15' }, '2027-04-15'), 'lembrado hoje')
+  assert.equal(reminderLabel({ last_reminded_at: '2027-04-13' }, '2027-04-15'), 'lembrado há 2 dias')
+})
+
+function cli(id: string, over: Partial<ServiceInput> & { monthly_fee?: number | null } = {}): Prospect {
+  return { id, name: id, monthly_fee: null, last_reminded_at: null, ...svc(over) } as unknown as Prospect
+}
+
+// Em 2027-04-20: a (pago até 12/04, 8 dias de atraso) = suspender; b (paga até 15/04) = a_cobrar;
+// c (isento sem decisão, longe do fim) = isento; d (pago até 12/05) = ativo; e suspenso; f encerrado.
+const HOJE = '2027-04-20'
+const base = () => [
+  cli('a', { paid_until: '2027-04-12' }),
+  cli('b', { paid_until: '2027-04-15' }),
+  cli('c', { free_until: '2027-10-01' }),
+  cli('d', { paid_until: '2027-05-12', monthly_fee: 90 }),
+  cli('e', { suspended_at: '2027-04-18' }),
+  cli('f', { service_ended_at: '2027-04-10' }),
+]
+
+test('serviceGroups - agrupa por urgência e ordena pelo vencimento mais antigo', () => {
+  const groups = serviceGroups(base(), HOJE)
+  assert.deepEqual(
+    groups.map((g) => [g.key, g.items.map((p) => p.id)]),
+    [
+      ['suspender', ['a']],
+      ['a_cobrar', ['b']],
+      ['ativos', ['d', 'c']],
+      ['inativos', ['e', 'f']],
+    ],
+  )
+})
+
+test('serviceGroups - ignora quem não é cliente', () => {
+  const naoCliente = { id: 'x', name: 'x', status: 'entrega' } as unknown as Prospect
+  assert.deepEqual(serviceGroups([naoCliente], HOJE), [])
+})
+
+test('serviceSummary - ativos exclui suspenso/encerrado; mrr soma só pagantes em dia', () => {
+  assert.deepEqual(serviceSummary(base(), HOJE), { ativos: 4, isentos: 1, pagantes: 1, mrr: 90 })
+})
+
+test('serviceQueue - suspender, depois a_cobrar, depois renovacao', () => {
+  const lista = [...base(), cli('g', { free_until: '2027-05-01' })]
+  assert.deepEqual(serviceQueue(lista, HOJE).map((p) => p.id), ['a', 'b', 'g'])
 })
