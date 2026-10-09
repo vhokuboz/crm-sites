@@ -150,7 +150,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
   }
 
   const podeCobrarDeNovo =
-    p.status === 'contatado' && !!p.next_action_at && daysFromToday(p.next_action_at) === 0
+    p.status === 'contatado' && !!p.next_action_at && daysFromToday(p.next_action_at) <= 0
 
   /** Anexa a nota digitada no modal, sem apagar o que já estava anotado. */
   async function discardWithNote(note: string) {
