@@ -514,6 +514,12 @@ export function statusTransitionPatch(
   if (extra.next_action_at && patch.next_action_at === previous.next_action_at) {
     merged.next_action_at = extra.next_action_at
   }
+  // Perdido/descartado sai da fila: não sobra data de ação nem lembrete de cobrança.
+  // Vale mesmo se a ficha mandou next_action_at junto (ela manda em todo salvamento).
+  if (CLOSED.includes(patch.status)) {
+    merged.next_action_at = null
+    merged.last_reminded_at = null
+  }
   return merged
 }
 

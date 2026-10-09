@@ -174,3 +174,12 @@ test('closesHostedSite - reativar (suspended_at null): false', () => {
 test('closesHostedSite - suspender sem landing_page_url: false', () => {
   assert.equal(closesHostedSite(fakeService({ landing_page_url: null }), { suspended_at: '2027-04-20' }), false)
 })
+
+test('statusTransitionPatch - perdido e descartado zeram next_action_at e last_reminded_at', () => {
+  for (const status of ['perdido', 'descartado'] as const) {
+    const previous = fakeProspect('contatado')
+    const patch = statusTransitionPatch(previous, { status, next_action_at: '2026-12-01' })
+    assert.equal(patch.next_action_at, null)
+    assert.equal(patch.last_reminded_at, null)
+  }
+})
