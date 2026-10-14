@@ -9,6 +9,7 @@ import { Hoje } from './components/Hoje'
 const Funil = lazy(() => import('./components/Funil').then((m) => ({ default: m.Funil })))
 const Base = lazy(() => import('./components/Base').then((m) => ({ default: m.Base })))
 const Clientes = lazy(() => import('./components/Clientes').then((m) => ({ default: m.Clientes })))
+const Resumo = lazy(() => import('./components/Resumo').then((m) => ({ default: m.Resumo })))
 const Drawer = lazy(() => import('./components/Drawer').then((m) => ({ default: m.Drawer })))
 const AddProspectModal = lazy(() =>
   import('./components/AddProspectModal').then((m) => ({ default: m.AddProspectModal })),
@@ -16,7 +17,7 @@ const AddProspectModal = lazy(() =>
 import { Toast } from './components/Toast'
 import { useMenus } from './lib/useMenus'
 
-const TABS = ['Hoje', 'Funil', 'Clientes', 'Base'] as const
+const TABS = ['Hoje', 'Funil', 'Clientes', 'Base', 'Resumo'] as const
 type Tab = (typeof TABS)[number]
 
 export default function App() {
@@ -93,7 +94,7 @@ function Crm({ email }: { email: string }) {
                 key={t}
                 onClick={() => setTab(t)}
                 aria-current={tab === t ? 'page' : undefined}
-                className={`hit flex-1 rounded-sm px-3.5 py-2 text-sm font-medium transition-colors sm:flex-none ${
+                className={`hit flex-1 rounded-sm px-2 py-2 text-body font-medium transition-colors sm:flex-none sm:px-3.5 ${
                   tab === t ? 'bg-cream text-ink' : 'text-cream/70 hover:bg-cream/10'
                 }`}
               >
@@ -105,14 +106,14 @@ function Crm({ email }: { email: string }) {
           <div className="ml-auto flex items-center gap-3">
             <button
               onClick={() => setAdding(true)}
-              className="hit rounded-sm bg-cream px-3.5 py-2 text-sm font-medium text-ink hover:opacity-90"
+              className="hit rounded-sm bg-cream px-3.5 py-2 text-body font-medium text-ink hover:opacity-90"
             >
               + Novo prospect
             </button>
             <span className="hidden text-xs text-cream/60 md:inline">{email}</span>
             <button
               onClick={() => void supabase.auth.signOut()}
-              className="hit rounded-sm border border-cream/30 px-3 py-2 text-sm hover:bg-cream/10"
+              className="hit rounded-sm border border-cream/30 px-3 py-2 text-body hover:bg-cream/10"
             >
               Sair
             </button>
@@ -123,11 +124,11 @@ function Crm({ email }: { email: string }) {
       {error && (
         <div role="alert" className="border-b border-seal/30 bg-seal-tint">
           <div className="mx-auto flex max-w-[88rem] items-center gap-3 px-4 py-2.5 sm:px-6">
-            <p className="flex-1 text-sm text-seal-ink">{error}</p>
-            <button onClick={() => void reload()} className="hit text-sm font-medium text-seal-ink underline">
+            <p className="flex-1 text-body text-seal-ink">{error}</p>
+            <button onClick={() => void reload()} className="hit text-body font-medium text-seal-ink underline">
               tentar de novo
             </button>
-            <button onClick={dismissError} className="hit text-sm text-seal-ink underline">
+            <button onClick={dismissError} className="hit text-body text-seal-ink underline">
               dispensar
             </button>
           </div>
@@ -155,6 +156,8 @@ function Crm({ email }: { email: string }) {
           <Funil prospects={prospects} onUpdate={update} onOpen={setOpen} />
         ) : tab === 'Clientes' ? (
           <Clientes prospects={prospects} onUpdate={update} onOpen={setOpen} />
+        ) : tab === 'Resumo' ? (
+          <Resumo prospects={prospects} />
         ) : (
           <Base onOpen={setOpen} />
         )}
