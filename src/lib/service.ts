@@ -177,6 +177,14 @@ export function serviceSummary(prospects: Prospect[], hoje = todayISO()) {
   return { ativos, isentos, pagantes, mrr }
 }
 
+/** Mensalidade que entra quando a isencao acabar: soma de quem esta isento ou em renovacao. */
+export function futureFee(prospects: Prospect[], hoje = todayISO()): number {
+  return prospects.reduce((sum, p) => {
+    const state = serviceState(p, hoje)
+    return state === 'isento' || state === 'renovacao' ? sum + (p.monthly_fee ?? 0) : sum
+  }, 0)
+}
+
 const QUEUE_ORDER: ServiceState[] = ['suspender', 'a_cobrar', 'renovacao']
 
 /** Quem exige ação hoje, mais urgente primeiro. */

@@ -50,6 +50,11 @@ export function weeklyCounts(ps: Prospect[], now = todayISO(), weeks = 4): WeekR
   })
 }
 
+/** Diferenca da semana atual para a anterior (positivo = subiu). */
+export function weekDelta(weeks: WeekRow[], key: 'novos' | 'contratos' | 'fechamentos'): number {
+  return weeks[weeks.length - 1][key] - weeks[weeks.length - 2][key]
+}
+
 /* ---------------------------------------------------------- conversao --- */
 
 // Da negociacao em diante: o prospect respondeu e entrou no processo.

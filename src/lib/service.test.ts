@@ -10,6 +10,7 @@ import {
   serviceQueue,
   serviceStartPatch,
   serviceState,
+  futureFee,
   serviceSummary,
   type ServiceInput,
 } from './service.ts'
@@ -180,6 +181,11 @@ test('serviceGroups - ignora quem não é cliente', () => {
 
 test('serviceSummary - ativos exclui suspenso/encerrado; mrr soma só pagantes em dia', () => {
   assert.deepEqual(serviceSummary(base(), HOJE), { ativos: 4, isentos: 1, pagantes: 1, mrr: 90 })
+})
+
+test('futureFee - soma a mensalidade de isentos e renovacoes, sem os pagantes', () => {
+  const lista = [cli('x', { monthly_fee: 70, free_until: '2027-10-01' }), cli('y', { monthly_fee: 30, paid_until: '2027-05-12' })]
+  assert.equal(futureFee(lista, HOJE), 70)
 })
 
 test('serviceQueue - suspender, depois a_cobrar, depois renovacao', () => {

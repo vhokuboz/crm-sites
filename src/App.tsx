@@ -157,7 +157,7 @@ function Crm({ email }: { email: string }) {
         ) : tab === 'Clientes' ? (
           <Clientes prospects={prospects} onUpdate={update} onOpen={setOpen} />
         ) : tab === 'Resumo' ? (
-          <Resumo prospects={prospects} />
+          <Resumo prospects={prospects} onGoto={setTab} />
         ) : (
           <Base onOpen={setOpen} />
         )}

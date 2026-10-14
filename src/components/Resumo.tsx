@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import type { Prospect } from '../lib/database.types'
-import { formatDateBR } from '../lib/domain'
+import { buildQueue, formatBRL, formatDateBR, isOpen } from '../lib/domain'
+import { futureFee, serviceQueue, serviceSummary } from '../lib/service'
 import {
   DIMENSIONS,
   MIN_SAMPLE,
   conversionBy,
   dimensionKey,
+  weekDelta,
   weeklyCounts,
   wasContacted,
   type Dimension,
@@ -13,6 +15,7 @@ import {
 } from '../lib/stats'
 
 type Props = { prospects: Prospect[] }
+type ResumoProps = Props & { onGoto: (tab: 'Hoje' | 'Clientes') => void }
 
 const pct = (v: number | null) => (v === null ? '—' : `${Math.round(v * 100)}%`)
 const short = (iso: string) => formatDateBR(iso).slice(0, 5)
@@ -24,12 +27,72 @@ const METRICS: { key: keyof Pick<WeekRow, 'novos' | 'contatados' | 'contratos' |
   { key: 'fechamentos', label: 'Fechamentos' },
 ]
 
-export function Resumo({ prospects }: Props) {
+export function Resumo({ prospects, onGoto }: ResumoProps) {
   return (
     <div className="space-y-10">
+      <Panorama prospects={prospects} onGoto={onGoto} />
       <Semanas prospects={prospects} />
       <Conversao prospects={prospects} />
     </div>
+  )
+}
+
+function Panorama({ prospects, onGoto }: ResumoProps) {
+  const queue = buildQueue(prospects)
+  const { ativos, pagantes, mrr } = serviceSummary(prospects)
+  const servico = serviceQueue(prospects).length
+  const brl = (v: number) => `R$ ${formatBRL(v)}`
+
+  const base: [string, string][] = [
+    ['Prospects na base', String(prospects.length)],
+    ['Em aberto', String(prospects.filter(isOpen).length)],
+    ['Já contatados', String(prospects.filter(wasContacted).length)],
+    ['Clientes no ar', String(ativos)],
+    ['Receita mensal', `${brl(mrr)} (${pagantes} pagante${pagantes === 1 ? '' : 's'})`],
+    ['A entrar após a isenção', brl(futureFee(prospects))],
+  ]
+
+  return (
+    <section aria-labelledby="panorama">
+      <h2 id="panorama" className="font-display text-base font-semibold tracking-tight">
+        Panorama
+      </h2>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-sm border border-rule bg-card px-4 py-3">
+        <p className="text-body">
+          <span className={queue.overdue.length > 0 ? 'font-semibold text-seal-ink' : 'font-semibold'}>
+            {queue.overdue.length} atrasado{queue.overdue.length === 1 ? '' : 's'}
+          </span>{' '}
+          · <span className="font-semibold">{queue.today.length}</span> para hoje
+          {servico > 0 && (
+            <>
+              {' '}
+              · <span className="font-semibold">{servico}</span> de serviço
+            </>
+          )}
+        </p>
+        <button
+          onClick={() => onGoto('Hoje')}
+          className="hit ml-auto min-h-9 rounded-sm bg-ink px-3.5 text-body font-medium text-paper hover:opacity-90"
+        >
+          Abrir a Hoje
+        </button>
+      </div>
+
+      <dl className="mt-2 grid divide-y divide-rule rounded-sm border border-rule bg-card sm:grid-cols-2 sm:divide-y-0">
+        {base.map(([label, value], i) => (
+          <div
+            key={label}
+            className={`flex items-baseline justify-between gap-3 px-4 py-2.5 ${
+              i >= 2 ? 'sm:border-t sm:border-rule' : ''
+            } ${i % 2 === 0 ? 'sm:border-r sm:border-rule' : ''}`}
+          >
+            <dt className="text-body text-muted">{label}</dt>
+            <dd className="text-right font-semibold tabular-nums">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   )
 }
 
@@ -94,6 +157,7 @@ function Semanas({ prospects }: Props) {
                           <div className="flex items-center gap-2" title={`${m.label}: ${v}`}>
                             <span className={`w-6 text-right tabular-nums ${i === last ? 'font-semibold' : ''}`}>{v}</span>
                             <Bar value={v} max={max} strong={i === last} />
+                            {i === last && m.key !== 'contatados' && <Delta n={weekDelta(weeks, m.key)} />}
                           </div>
                         )}
                       </td>
@@ -106,6 +170,18 @@ function Semanas({ prospects }: Props) {
         </table>
       </div>
     </section>
+  )
+}
+
+/** Variacao sobre a semana passada, em texto: nunca so cor ou seta. */
+function Delta({ n }: { n: number }) {
+  const text = n === 0 ? 'igual' : `${n > 0 ? '+' : '−'}${Math.abs(n)}`
+  const spoken = n === 0 ? 'igual à semana passada' : `${Math.abs(n)} ${n > 0 ? 'a mais' : 'a menos'} que na semana passada`
+  return (
+    <span className="w-12 shrink-0 text-meta tabular-nums text-muted" title={spoken}>
+      <span aria-hidden>{text}</span>
+      <span className="sr-only">{spoken}</span>
+    </span>
   )
 }
 
