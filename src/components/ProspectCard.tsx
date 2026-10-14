@@ -6,15 +6,14 @@ import {
   RISK_TONE,
   STATUS_LABEL,
   STATUS_TONE,
-  addBusinessDaysISO,
-  addDaysISO,
   canDiscard,
-  daysFromToday,
+  isOpen,
   inactivityRisk,
   lastSocialActivityLabel,
   prototypeUrl,
   relativeDay,
 } from '../lib/domain'
+import { SNOOZE_OPTIONS, canRepeat, contactPatch, repeatPatch, snoozePatch } from '../lib/queueActions'
 import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { DiscardModal } from './DiscardModal'
 import { GapMeter } from './GapMeter'
@@ -25,6 +24,10 @@ type Props = {
   onUpdate: OnUpdate
   onOpen: (p: Prospect) => void
   tone?: 'overdue' | 'normal'
+  /** Modo de selecao em lote: mostra a caixa de marcar. */
+  selecting?: boolean
+  selected?: boolean
+  onSelect?: (id: string) => void
 }
 
 /** Envelope com relógio: usado no botão "marcar contato" (contato + próximo
@@ -102,7 +105,15 @@ const PRIMARY =
 const SECONDARY =
   'hit inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-sm border border-rule px-2.5 py-1.5 text-body transition-colors hover:bg-paper'
 
-export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }: Props) {
+export function ProspectCard({
+  prospect: p,
+  onUpdate,
+  onOpen,
+  tone = 'normal',
+  selecting = false,
+  selected = false,
+  onSelect,
+}: Props) {
   const [copied, setCopied] = useState<'ok' | 'erro' | null>(null)
   // Segura cliques repetidos enquanto a gravacao nao volta ("cobrei de novo" somaria 2x).
   const [busy, setBusy] = useState(false)
@@ -131,25 +142,30 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
 
   /** Registra que houve contato hoje e ja deixa um retorno agendado. */
   function markContacted() {
-    const antesDoContato = p.status === 'triagem' || p.status === 'prototipado'
-    void run(onUpdate(p.id, {
-      last_contacted_at: new Date().toISOString(),
-      ...(antesDoContato
-        ? { status: 'contatado' as const }
-        : { next_action_at: addDaysISO(3) }),
-    }, 'Contato registrado'))
+    void run(onUpdate(p.id, contactPatch(p), 'Contato registrado'))
   }
 
   /** Empurra a próxima ação e soma uma tentativa, sem sair do card. */
   function cobrarDeNovo() {
-    void run(onUpdate(p.id, {
-      next_action_at: addBusinessDaysISO(3),
-      contact_attempts: p.contact_attempts + 1,
-    }, 'Nova cobrança registrada'))
+    void run(onUpdate(p.id, repeatPatch(p), 'Nova cobrança registrada'))
   }
 
-  const podeCobrarDeNovo =
-    p.status === 'contatado' && !!p.next_action_at && daysFromToday(p.next_action_at) <= 0
+  function snooze(days: number, label: string) {
+    void run(onUpdate(p.id, snoozePatch(days), `Adiado: ${label.toLowerCase()}`))
+  }
+
+  const podeCobrarDeNovo = canRepeat(p)
+
+  /** Atalhos com o card focado (j/k movem o foco entre cards, na Hoje). */
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.target !== e.currentTarget || e.metaKey || e.ctrlKey || e.altKey || busy) return
+    if (e.key === 'Enter' || e.key === 'e') onOpen(p)
+    else if (e.key === 'c') podeCobrarDeNovo ? cobrarDeNovo() : markContacted()
+    else if (e.key === 'a') snooze(1, 'amanhã')
+    else if (e.key === 'x' && selecting) onSelect?.(p.id)
+    else return
+    e.preventDefault()
+  }
 
   /** Anexa a nota digitada no modal, sem apagar o que já estava anotado. */
   async function discardWithNote(note: string) {
@@ -162,12 +178,24 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
 
   return (
     <article
+      data-card
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
       className={`@container flex h-full flex-col rounded-sm border bg-card p-4 ${
-        overdue ? 'border-seal/40' : 'border-rule'
+        selected ? 'border-ink ring-1 ring-ink' : overdue ? 'border-seal/40' : 'border-rule'
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        {selecting && (
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onSelect?.(p.id)}
+            aria-label={`Selecionar ${p.name}`}
+            className="hit mt-1 h-4 w-4 shrink-0 accent-ink"
+          />
+        )}
+        <div className="min-w-0 flex-1">
           <button
             onClick={() => onOpen(p)}
             className="text-left break-words font-semibold text-name tracking-tight hover:underline"
@@ -251,22 +279,35 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
               )}
             </button>
           )}
-          {canDiscard(p) && (
+          {isOpen(p) && (
             <details data-menu className="relative">
               <summary
-                aria-label="Mais ações"
+                aria-label="Adiar ou descartar"
                 className="hit grid h-9 w-9 cursor-pointer list-none place-items-center rounded-sm text-lg leading-none text-muted hover:bg-paper [&::-webkit-details-marker]:hidden"
               >
                 ···
               </summary>
-              <div className="absolute bottom-full right-0 z-10 mb-1 w-36 rounded-sm border border-rule bg-card p-1 shadow-lg">
-                <button
-                  onClick={() => setDiscardOpen(true)}
-                  className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2.5 text-body text-seal-ink hover:bg-seal/10"
-                >
-                  <ArchiveIcon size={14} />
-                  Descartar
-                </button>
+              <div className="absolute bottom-full right-0 z-10 mb-1 w-44 rounded-sm border border-rule bg-card p-1 shadow-lg">
+                <p className="px-2.5 pb-1 pt-1.5 text-meta text-muted">Adiar</p>
+                {SNOOZE_OPTIONS.map((o) => (
+                  <button
+                    key={o.days}
+                    onClick={() => snooze(o.days, o.label)}
+                    disabled={busy}
+                    className="block w-full rounded-sm px-2.5 py-2.5 text-left text-body hover:bg-paper disabled:opacity-50"
+                  >
+                    {o.label}
+                  </button>
+                ))}
+                {canDiscard(p) && (
+                  <button
+                    onClick={() => setDiscardOpen(true)}
+                    className="mt-1 flex w-full items-center gap-2 rounded-sm border-t border-rule px-2.5 py-2.5 text-body text-seal-ink hover:bg-seal/10"
+                  >
+                    <ArchiveIcon size={14} />
+                    Descartar
+                  </button>
+                )}
               </div>
             </details>
           )}

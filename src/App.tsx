@@ -45,11 +45,24 @@ export default function App() {
 }
 
 function Crm({ email }: { email: string }) {
-  const { prospects, loading, error, toast, update, reload, dismissError, dismissToast } = useProspects()
+  const { prospects, loading, error, toast, update, updateMany, reload, dismissError, dismissToast } = useProspects()
   const [tab, setTab] = useState<Tab>('Hoje')
   const [open, setOpen] = useState<Prospect | null>(null)
   const [adding, setAdding] = useState(false)
   useMenus()
+
+  // n abre o formulario de novo prospect (fora de campos e dialogos).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const t = e.target as HTMLElement
+      if (e.key !== 'n' || e.metaKey || e.ctrlKey || e.altKey) return
+      if (t.closest('input, textarea, select, [contenteditable]') || document.querySelector('[aria-modal="true"]')) return
+      e.preventDefault()
+      setAdding(true)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   // Ficha abre direto no prospect recém-criado -- segmento e problema ainda
   // dependem de revisão manual, então não faz sentido deixar o usuário caçá-lo.
@@ -137,7 +150,7 @@ function Crm({ email }: { email: string }) {
             </button>
           </div>
         ) : tab === 'Hoje' ? (
-          <Hoje prospects={prospects} onUpdate={update} onOpen={setOpen} />
+          <Hoje prospects={prospects} onUpdate={update} onUpdateMany={updateMany} onOpen={setOpen} />
         ) : tab === 'Funil' ? (
           <Funil prospects={prospects} onUpdate={update} onOpen={setOpen} />
         ) : tab === 'Clientes' ? (

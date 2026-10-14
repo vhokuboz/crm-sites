@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import { closesHostedSite, statusTransitionPatch } from './domain'
 import { serviceStartPatch } from './service'
@@ -15,6 +15,14 @@ type State = {
 
 /** `undoLabel` ("Marcado como contatado") liga o aviso com Desfazer apos salvar. */
 export type OnUpdate = (id: string, patch: ProspectUpdate, undoLabel?: string) => Promise<boolean>
+
+/** Aplica o mesmo tipo de mudanca a varios prospects; devolve quantos foram salvos. */
+export type OnUpdateMany = (
+  items: { id: string; patch: ProspectUpdate }[],
+  label: string,
+) => Promise<number>
+
+type WriteResult = { ok: boolean; revert: ProspectUpdate | null; hosted: boolean }
 
 export function useProspects() {
   const [state, setState] = useState<State>({ prospects: [], loading: true, error: null, toast: null })
@@ -37,34 +45,34 @@ export function useProspects() {
     void load()
   }, [load])
 
+  // Leitura sincrona do estado atual, sem depender do timing do setState.
+  const ref = useRef<Prospect[]>([])
+  ref.current = state.prospects
+
   /**
    * Escreve otimista: a tela responde na hora e o registro volta ao valor
-   * anterior se o banco recusar (uma policy negando, por exemplo).
+   * anterior se o banco recusar (uma policy negando, por exemplo). Devolve
+   * tambem o patch que desfaz a escrita.
    */
-  const update = useCallback<OnUpdate>(async (id, patch, undoLabel) => {
-    let previous: Prospect | undefined
-    setState((s) => {
-      previous = s.prospects.find((p) => p.id === id)
-      return s
-    })
+  const write = useCallback(async (id: string, patch: ProspectUpdate): Promise<WriteResult> => {
+    const previous = ref.current.find((p) => p.id === id)
+    const hosted = !!previous && closesHostedSite(previous, patch)
 
-    if (previous && closesHostedSite(previous, patch)) {
+    if (previous && hosted) {
       const ok = window.confirm(
         `Isso vai apagar a hospedagem do site de "${previous.name}" no Cloudflare Pages. Confirmar?`,
       )
-      if (!ok) return false
+      if (!ok) return { ok: false, revert: null, hosted }
     }
 
-    let finalPatch: ProspectUpdate = patch
+    const finalPatch: ProspectUpdate = previous
+      ? serviceStartPatch(previous, statusTransitionPatch(previous, patch))
+      : patch
 
-    setState((s) => {
-      previous = s.prospects.find((p) => p.id === id)
-      finalPatch = previous ? serviceStartPatch(previous, statusTransitionPatch(previous, patch)) : patch
-      return {
-        ...s,
-        prospects: s.prospects.map((p) => (p.id === id ? { ...p, ...finalPatch } : p)),
-      }
-    })
+    setState((s) => ({
+      ...s,
+      prospects: s.prospects.map((p) => (p.id === id ? { ...p, ...finalPatch } : p)),
+    }))
 
     const { data, error } = await supabase
       .from('prospects')
@@ -77,31 +85,18 @@ export function useProspects() {
       setState((s) => ({
         ...s,
         error: `Não foi possível salvar: ${error.message}`,
-        prospects: previous
-          ? s.prospects.map((p) => (p.id === id ? (previous as Prospect) : p))
-          : s.prospects,
+        prospects: previous ? s.prospects.map((p) => (p.id === id ? previous : p)) : s.prospects,
       }))
-      return false
+      return { ok: false, revert: null, hosted }
     }
 
-    // Desfazer regrava so os campos que a acao tocou, com o valor de antes.
-    const before = previous
-    const revert = before
-      ? (Object.fromEntries(
-          Object.keys(finalPatch).map((k) => [k, before[k as keyof Prospect]]),
-        ) as ProspectUpdate)
-      : null
     setState((s) => ({
       ...s,
       error: null,
       prospects: s.prospects.map((p) => (p.id === id ? data : p)),
-      toast:
-        undoLabel && revert && !closesHostedSite(before!, patch)
-          ? { id: Date.now(), message: undoLabel, undo: () => void update(id, revert, 'Desfeito') }
-          : s.toast,
     }))
 
-    if (previous && closesHostedSite(previous, patch)) {
+    if (previous && hosted) {
       void supabase.functions
         .invoke('encerrar-hospedagem', { body: { slug: previous.slug } })
         .then(({ error: fnError }) => {
@@ -114,8 +109,55 @@ export function useProspects() {
         })
     }
 
-    return true
+    // Desfazer regrava so os campos que a acao tocou, com o valor de antes.
+    const revert = previous
+      ? (Object.fromEntries(
+          Object.keys(finalPatch).map((k) => [k, previous[k as keyof Prospect]]),
+        ) as ProspectUpdate)
+      : null
+    return { ok: true, revert, hosted }
   }, [])
+
+  const showToast = useCallback((message: string, undo: () => void) => {
+    setState((s) => ({ ...s, toast: { id: Date.now(), message, undo } }))
+  }, [])
+
+  const update = useCallback<OnUpdate>(
+    async (id, patch, undoLabel) => {
+      const r = await write(id, patch)
+      // Escrita que apaga hospedagem nao tem volta: sem Desfazer.
+      if (r.ok && undoLabel && r.revert && !r.hosted) {
+        const revert = r.revert
+        showToast(undoLabel, () => void update(id, revert, 'Desfeito'))
+      }
+      return r.ok
+    },
+    [write, showToast],
+  )
+
+  /** Varias escritas em sequencia, com um unico aviso cujo Desfazer reverte todas. */
+  const updateMany = useCallback<OnUpdateMany>(
+    async (items, label) => {
+      const reverts: { id: string; patch: ProspectUpdate }[] = []
+      let done = 0
+      for (const { id, patch } of items) {
+        const r = await write(id, patch)
+        if (!r.ok) continue
+        done++
+        if (r.revert && !r.hosted) reverts.push({ id, patch: r.revert })
+      }
+      if (reverts.length > 0) {
+        showToast(`${label} (${done})`, () => {
+          void (async () => {
+            for (const rv of reverts) await write(rv.id, rv.patch)
+            showToast('Desfeito', () => {})
+          })()
+        })
+      }
+      return done
+    },
+    [write, showToast],
+  )
 
   const dismissError = useCallback(() => {
     setState((s) => ({ ...s, error: null }))
@@ -123,5 +165,5 @@ export function useProspects() {
 
   const dismissToast = useCallback(() => setState((s) => ({ ...s, toast: null })), [])
 
-  return { ...state, reload: load, update, dismissError, dismissToast }
+  return { ...state, reload: load, update, updateMany, dismissError, dismissToast }
 }

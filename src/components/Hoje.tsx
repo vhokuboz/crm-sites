@@ -1,4 +1,5 @@
-import type { OnUpdate } from '../lib/useProspects'
+import { useEffect, useRef, useState } from 'react'
+import type { OnUpdate, OnUpdateMany } from '../lib/useProspects'
 import type { Prospect } from '../lib/database.types'
 import {
   FUNNEL,
@@ -8,18 +9,76 @@ import {
   isOpen,
   readGap,
 } from '../lib/domain'
+import { SNOOZE_OPTIONS, contactPatch, matchesFilters, snoozePatch } from '../lib/queueActions'
+import { Foco } from './Foco'
 import { ProspectCard } from './ProspectCard'
 import { ServicoFila } from './ServicoFila'
 
 type Props = {
   prospects: Prospect[]
   onUpdate: OnUpdate
+  onUpdateMany: OnUpdateMany
   onOpen: (p: Prospect) => void
 }
 
-export function Hoje({ prospects, onUpdate, onOpen }: Props) {
-  const queue = buildQueue(prospects)
+const FIELD =
+  'min-h-9 rounded-sm border border-rule bg-card px-2.5 text-body placeholder:text-muted'
+
+/** Nao dispara atalho de tecla com foco em campo de texto ou com um dialogo aberto. */
+function typing(e: KeyboardEvent) {
+  const t = e.target as HTMLElement
+  return (
+    e.metaKey ||
+    e.ctrlKey ||
+    e.altKey ||
+    !!t.closest('input, textarea, select, [contenteditable]') ||
+    !!document.querySelector('[aria-modal="true"]')
+  )
+}
+
+export function Hoje({ prospects, onUpdate, onUpdateMany, onOpen }: Props) {
+  const [view, setView] = useState<'lista' | 'foco'>('lista')
+  const [filters, setFilters] = useState({ query: '', segment: '', status: '' })
+  const [selecting, setSelecting] = useState(false)
+  const [selected, setSelected] = useState<string[]>([])
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  const segments = [...new Set(prospects.filter(isOpen).map((p) => p.segment).filter(Boolean))].sort()
+  const filtered = prospects.filter((p) => matchesFilters(p, filters))
+  const filtering = !!(filters.query || filters.segment || filters.status)
+  const queue = buildQueue(filtered)
   const abertos = prospects.filter(isOpen)
+
+  // Atalhos da lista: / busca, j/k percorre os cards, f abre o modo foco.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (typing(e)) return
+      if (e.key === '/') searchRef.current?.focus()
+      else if (e.key === 'f') setView((v) => (v === 'foco' ? 'lista' : 'foco'))
+      else if (view === 'lista' && (e.key === 'j' || e.key === 'k')) {
+        const cards = [...document.querySelectorAll<HTMLElement>('[data-card]')]
+        const at = cards.indexOf(document.activeElement as HTMLElement)
+        const next = e.key === 'j' ? Math.min(at + 1, cards.length - 1) : Math.max(at - 1, 0)
+        cards[at === -1 ? 0 : next]?.focus()
+        cards[at === -1 ? 0 : next]?.scrollIntoView({ block: 'nearest' })
+      } else return
+      e.preventDefault()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [view])
+
+  const allIds = [...queue.overdue, ...queue.today, ...queue.unscheduled].map((p) => p.id)
+  const toggle = (id: string) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+  const chosen = prospects.filter((p) => selected.includes(p.id))
+  function leaveSelection() {
+    setSelecting(false)
+    setSelected([])
+  }
+  async function bulk(label: string, patchFor: (p: Prospect) => Parameters<OnUpdate>[1]) {
+    await onUpdateMany(chosen.map((p) => ({ id: p.id, patch: patchFor(p) })), label)
+    leaveSelection()
+  }
 
   if (prospects.length === 0) {
     return (
@@ -29,8 +88,94 @@ export function Hoje({ prospects, onUpdate, onOpen }: Props) {
     )
   }
 
+  if (view === 'foco') {
+    return <Foco prospects={filtered} onUpdate={onUpdate} onOpen={onOpen} onExit={() => setView('lista')} />
+  }
+
+  const cardProps = {
+    onUpdate,
+    onOpen,
+    selecting,
+    onSelect: toggle,
+  }
+
   return (
-    <div className="space-y-8">
+    <div className={`space-y-8 ${selecting ? 'pb-24' : ''}`}>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            ref={searchRef}
+            type="search"
+            value={filters.query}
+            onChange={(e) => setFilters({ ...filters, query: e.target.value })}
+            placeholder="Buscar nome, segmento ou cidade"
+            aria-label="Buscar na fila"
+            className={`${FIELD} min-w-0 flex-1 sm:max-w-xs`}
+          />
+          <select
+            value={filters.segment}
+            onChange={(e) => setFilters({ ...filters, segment: e.target.value })}
+            aria-label="Filtrar por segmento"
+            className={FIELD}
+          >
+            <option value="">Todos os segmentos</option>
+            {segments.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            aria-label="Filtrar por status"
+            className={FIELD}
+          >
+            <option value="">Todos os status</option>
+            {FUNNEL.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABEL[s]}
+              </option>
+            ))}
+          </select>
+          {filtering && (
+            <button
+              onClick={() => setFilters({ query: '', segment: '', status: '' })}
+              className="hit px-2 py-2 text-body text-muted underline underline-offset-2 hover:text-ink"
+            >
+              Limpar filtros
+            </button>
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => (selecting ? leaveSelection() : setSelecting(true))}
+              aria-pressed={selecting}
+              className={`hit min-h-9 rounded-sm border px-3 text-body ${
+                selecting ? 'border-ink bg-ink text-paper' : 'border-rule hover:bg-card'
+              }`}
+            >
+              {selecting ? 'Cancelar seleção' : 'Selecionar'}
+            </button>
+            <button
+              onClick={() => setView('foco')}
+              className="hit min-h-9 rounded-sm bg-ink px-3.5 text-body font-medium text-paper hover:opacity-90"
+            >
+              Modo foco
+            </button>
+          </div>
+        </div>
+        <p className="hidden text-meta text-muted lg:block">
+          Atalhos: <kbd>/</kbd> buscar · <kbd>j</kbd> <kbd>k</kbd> navegar · <kbd>c</kbd> contato · <kbd>a</kbd> adiar
+          amanhã · <kbd>e</kbd> abrir · <kbd>f</kbd> modo foco · <kbd>n</kbd> novo prospect
+        </p>
+        {filtering && (
+          <p className="text-meta text-muted" role="status">
+            Filtrando: {queue.overdue.length + queue.today.length + queue.unscheduled.length} na fila de{' '}
+            {abertos.length} em aberto.
+          </p>
+        )}
+      </div>
+
       <div className="space-y-8">
         <ServicoFila prospects={prospects} onUpdate={onUpdate} onOpen={onOpen} />
 
@@ -41,7 +186,7 @@ export function Hoje({ prospects, onUpdate, onOpen }: Props) {
           urgent
         >
           {queue.overdue.map((p) => (
-            <ProspectCard key={p.id} prospect={p} onUpdate={onUpdate} onOpen={onOpen} tone="overdue" />
+            <ProspectCard key={p.id} prospect={p} {...cardProps} selected={selected.includes(p.id)} tone="overdue" />
           ))}
         </Section>
 
@@ -51,7 +196,7 @@ export function Hoje({ prospects, onUpdate, onOpen }: Props) {
           empty="Nenhum retorno marcado para hoje."
         >
           {queue.today.map((p) => (
-            <ProspectCard key={p.id} prospect={p} onUpdate={onUpdate} onOpen={onOpen} />
+            <ProspectCard key={p.id} prospect={p} {...cardProps} selected={selected.includes(p.id)} />
           ))}
         </Section>
 
@@ -62,7 +207,7 @@ export function Hoje({ prospects, onUpdate, onOpen }: Props) {
           hint="Ordenados pela lacuna: primeiro quem é bem avaliado e mal representado."
         >
           {queue.unscheduled.map((p) => (
-            <ProspectCard key={p.id} prospect={p} onUpdate={onUpdate} onOpen={onOpen} />
+            <ProspectCard key={p.id} prospect={p} {...cardProps} selected={selected.includes(p.id)} />
           ))}
         </Section>
       </div>
@@ -78,6 +223,43 @@ export function Hoje({ prospects, onUpdate, onOpen }: Props) {
           <TopGaps prospects={abertos} onOpen={onOpen} />
         </div>
       </details>
+
+      {selecting && (
+        <div
+          role="toolbar"
+          aria-label="Ações em lote"
+          className="on-ink fixed inset-x-0 bottom-0 z-40 border-t border-cream/15 bg-ink px-4 py-3 text-cream"
+        >
+          <div className="mx-auto flex max-w-[88rem] flex-wrap items-center gap-2">
+            <p className="mr-auto text-body" role="status">
+              {selected.length === 0 ? 'Marque os cards' : `${selected.length} selecionado${selected.length === 1 ? '' : 's'}`}
+            </p>
+            <button
+              disabled={selected.length === 0}
+              onClick={() => void bulk('Contato registrado', (p) => contactPatch(p))}
+              className="hit min-h-10 rounded-sm bg-cream px-3.5 text-body font-medium text-ink disabled:opacity-40"
+            >
+              Marquei contato
+            </button>
+            {SNOOZE_OPTIONS.map((o) => (
+              <button
+                key={o.days}
+                disabled={selected.length === 0}
+                onClick={() => void bulk(`Adiado: ${o.label.toLowerCase()}`, () => snoozePatch(o.days))}
+                className="hit min-h-10 rounded-sm border border-cream/30 px-3 text-body hover:bg-cream/10 disabled:opacity-40"
+              >
+                Adiar: {o.label.toLowerCase()}
+              </button>
+            ))}
+            <button
+              onClick={() => setSelected(selected.length === allIds.length ? [] : allIds)}
+              className="hit min-h-10 px-2 text-body underline underline-offset-2"
+            >
+              {selected.length === allIds.length ? 'Limpar' : 'Marcar todos'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

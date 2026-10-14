@@ -24,7 +24,7 @@ export function Toast({ message, onUndo, onDismiss }: Props) {
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
-      className="on-ink fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm items-center gap-3 rounded-sm bg-ink px-4 py-3 text-body text-cream shadow-lg sm:left-auto sm:right-6 sm:mx-0"
+      className="on-ink fixed inset-x-4 bottom-20 sm:bottom-20 z-50 mx-auto flex max-w-sm items-center gap-3 rounded-sm bg-ink px-4 py-3 text-body text-cream shadow-lg sm:left-auto sm:right-6 sm:mx-0"
     >
       <p className="min-w-0 flex-1">{message}</p>
       <button
