@@ -10,6 +10,7 @@ import { Base } from './components/Base'
 import { Clientes } from './components/Clientes'
 import { Drawer } from './components/Drawer'
 import { AddProspectModal } from './components/AddProspectModal'
+import { Toast } from './components/Toast'
 
 const TABS = ['Hoje', 'Funil', 'Clientes', 'Base'] as const
 type Tab = (typeof TABS)[number]
@@ -30,7 +31,7 @@ export default function App() {
   if (checking) {
     return (
       <div className="grid min-h-dvh place-items-center">
-        <p className="eyebrow">Carregando</p>
+        <p role="status" className="eyebrow">Carregando</p>
       </div>
     )
   }
@@ -40,7 +41,7 @@ export default function App() {
 }
 
 function Crm({ email }: { email: string }) {
-  const { prospects, loading, error, update, reload, dismissError } = useProspects()
+  const { prospects, loading, error, toast, update, reload, dismissError, dismissToast } = useProspects()
   const [tab, setTab] = useState<Tab>('Hoje')
   const [open, setOpen] = useState<Prospect | null>(null)
   const [adding, setAdding] = useState(false)
@@ -58,21 +59,18 @@ function Crm({ email }: { email: string }) {
 
   return (
     <div className="min-h-dvh">
-      <header className="border-b border-rule bg-card/60">
-        <div className="mx-auto flex max-w-[88rem] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6 sm:py-4">
-          <div>
-            <p className="eyebrow">Bauru · SP</p>
-            <h1 className="font-display text-xl font-semibold tracking-tight">Prospecção</h1>
-          </div>
+      <header className="bg-ink text-cream">
+        <div className="mx-auto flex max-w-[88rem] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
+          <img src="/okai-wordmark.webp" alt="Okai · web & digital" className="h-10 w-auto" />
 
-          <nav className="flex gap-1" aria-label="Seções">
+          <nav className="order-last flex w-full gap-1 sm:order-none sm:w-auto" aria-label="Seções">
             {TABS.map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
                 aria-current={tab === t ? 'page' : undefined}
-                className={`rounded-sm px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-colors ${
-                  tab === t ? 'bg-ink text-paper' : 'text-muted hover:bg-paper'
+                className={`hit flex-1 rounded-sm px-3.5 py-2 text-sm font-medium transition-colors sm:flex-none ${
+                  tab === t ? 'bg-cream text-ink' : 'text-cream/70 hover:bg-cream/10'
                 }`}
               >
                 {t}
@@ -83,14 +81,14 @@ function Crm({ email }: { email: string }) {
           <div className="ml-auto flex items-center gap-3">
             <button
               onClick={() => setAdding(true)}
-              className="rounded-sm bg-ink px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-paper hover:opacity-90"
+              className="hit rounded-sm bg-cream px-3.5 py-2 text-sm font-medium text-ink hover:opacity-90"
             >
               + Novo prospect
             </button>
-            <span className="hidden font-mono text-[11px] text-muted sm:inline">{email}</span>
+            <span className="hidden text-xs text-cream/60 md:inline">{email}</span>
             <button
               onClick={() => void supabase.auth.signOut()}
-              className="rounded-sm border border-rule px-2.5 py-1 font-mono text-[11px] hover:bg-paper"
+              className="hit rounded-sm border border-cream/30 px-3 py-2 text-sm hover:bg-cream/10"
             >
               Sair
             </button>
@@ -101,8 +99,11 @@ function Crm({ email }: { email: string }) {
       {error && (
         <div role="alert" className="border-b border-seal/30 bg-seal/8">
           <div className="mx-auto flex max-w-[88rem] items-center gap-3 px-4 py-2.5 sm:px-6">
-            <p className="flex-1 text-[13px] text-seal">{error}</p>
-            <button onClick={dismissError} className="font-mono text-[11px] text-seal underline">
+            <p className="flex-1 text-sm text-seal">{error}</p>
+            <button onClick={() => void reload()} className="hit text-sm font-medium text-seal underline">
+              tentar de novo
+            </button>
+            <button onClick={dismissError} className="hit text-sm text-seal underline">
               dispensar
             </button>
           </div>
@@ -111,11 +112,7 @@ function Crm({ email }: { email: string }) {
 
       <main className="mx-auto max-w-[88rem] px-4 py-6 sm:px-6 sm:py-8">
         {loading ? (
-          <p className="eyebrow">Carregando prospects</p>
-        ) : prospects.length === 0 ? (
-          <p className="rounded-sm border border-dashed border-rule px-4 py-10 text-center text-sm text-muted">
-            Nenhum prospect na base ainda.
-          </p>
+          <p role="status" className="eyebrow">Carregando prospects</p>
         ) : tab === 'Hoje' ? (
           <Hoje prospects={prospects} onUpdate={update} onOpen={setOpen} />
         ) : tab === 'Funil' ? (
@@ -132,6 +129,8 @@ function Crm({ email }: { email: string }) {
       )}
 
       {adding && <AddProspectModal onCreated={handleCreated} onClose={() => setAdding(false)} />}
+
+      {toast && <Toast message={toast.message} onUndo={toast.undo} onDismiss={dismissToast} />}
     </div>
   )
 }

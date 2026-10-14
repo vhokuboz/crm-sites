@@ -1,4 +1,5 @@
-import type { Prospect, ProspectUpdate } from '../lib/database.types'
+import type { OnUpdate } from '../lib/useProspects'
+import type { Prospect } from '../lib/database.types'
 import {
   FUNNEL,
   STATUS_LABEL,
@@ -12,7 +13,7 @@ import { ServicoFila } from './ServicoFila'
 
 type Props = {
   prospects: Prospect[]
-  onUpdate: (id: string, patch: ProspectUpdate) => Promise<boolean>
+  onUpdate: OnUpdate
   onOpen: (p: Prospect) => void
 }
 
@@ -21,27 +22,8 @@ export function Hoje({ prospects, onUpdate, onOpen }: Props) {
   const abertos = prospects.filter(isOpen)
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-        <Kpis
-          atrasados={queue.overdue.length}
-          hoje={queue.today.length}
-          abertos={abertos.length}
-          semData={queue.unscheduled.length}
-        />
-      </div>
-
-      {/* No mobile o grid empilha em coluna única: por vir antes da fila no
-          DOM, essas métricas aparecem logo abaixo dos KPIs, sem precisar
-          rolar a tela toda. No desktop, o grid-column/row a reposiciona
-          para a lateral, ao lado de Atrasados/Para hoje/Sem próximo passo. */}
-      <aside className="min-w-0 space-y-8 lg:col-start-2 lg:row-start-1 lg:row-span-2">
-        <Funnel prospects={prospects} />
-        <Segments prospects={prospects} />
-        <TopGaps prospects={abertos} onOpen={onOpen} />
-      </aside>
-
-      <div className="min-w-0 space-y-8 lg:col-start-1 lg:row-start-2">
+    <div className="space-y-8">
+      <div className="space-y-8">
         <ServicoFila prospects={prospects} onUpdate={onUpdate} onOpen={onOpen} />
 
         <Section
@@ -76,42 +58,18 @@ export function Hoje({ prospects, onUpdate, onOpen }: Props) {
           ))}
         </Section>
       </div>
-    </div>
-  )
-}
 
-function Kpis({
-  atrasados,
-  hoje,
-  abertos,
-  semData,
-}: {
-  atrasados: number
-  hoje: number
-  abertos: number
-  semData: number
-}) {
-  const items = [
-    { label: 'atrasados', value: atrasados, urgent: atrasados > 0 },
-    { label: 'para hoje', value: hoje, urgent: false },
-    { label: 'em aberto', value: abertos, urgent: false },
-    { label: 'sem data', value: semData, urgent: false },
-  ]
-
-  return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-rule bg-rule sm:grid-cols-4">
-      {items.map((it) => (
-        <div key={it.label} className="bg-card px-4 py-3.5">
-          <p
-            className={`font-display text-3xl font-semibold tracking-tight tabular-nums ${
-              it.urgent ? 'text-seal' : 'text-ink'
-            }`}
-          >
-            {it.value}
-          </p>
-          <p className="eyebrow mt-0.5">{it.label}</p>
+      {/* Panorama é consulta, não fila: fechado por padrão para a fila ter o foco. */}
+      <details className="rule-top pt-4">
+        <summary className="hit cursor-pointer text-sm font-medium text-muted hover:text-ink">
+          Panorama · {abertos.length} em aberto
+        </summary>
+        <div className="mt-5 grid gap-8 md:grid-cols-3">
+          <Funnel prospects={prospects} />
+          <Segments prospects={prospects} />
+          <TopGaps prospects={abertos} onOpen={onOpen} />
         </div>
-      ))}
+      </details>
     </div>
   )
 }
@@ -136,15 +94,15 @@ function Section({
       <div className="flex items-baseline gap-2">
         <h2 className="font-display text-lg font-semibold tracking-tight">{title}</h2>
         <span
-          className={`font-mono text-xs ${urgent && count > 0 ? 'text-seal' : 'text-muted'}`}
+          className={`text-xs tabular-nums ${urgent && count > 0 ? 'text-seal' : 'text-muted'}`}
         >
           {count}
         </span>
       </div>
-      {hint && <p className="mt-1 text-[13px] text-muted">{hint}</p>}
+      {hint && <p className="mt-1 text-sm text-muted">{hint}</p>}
 
       {count === 0 ? (
-        <p className="mt-3 rounded-sm border border-dashed border-rule px-4 py-6 text-center text-[13px] text-muted">
+        <p className="mt-3 rounded-sm border border-dashed border-rule px-4 py-6 text-center text-sm text-muted">
           {empty}
         </p>
       ) : (
@@ -164,7 +122,7 @@ function Funnel({ prospects }: { prospects: Prospect[] }) {
           const n = prospects.filter((p) => p.status === s).length
           return (
             <div key={s} className="flex items-center gap-2">
-              <span className="flex-1 min-w-0 truncate font-mono text-[11px] text-muted">
+              <span className="flex-1 min-w-0 truncate text-xs text-muted">
                 {STATUS_LABEL[s]}
               </span>
               <div className="h-4 flex-1 bg-rule/50">
@@ -173,7 +131,7 @@ function Funnel({ prospects }: { prospects: Prospect[] }) {
                   style={{ width: `${(n / total) * 100}%` }}
                 />
               </div>
-              <span className="w-5 shrink-0 text-right font-mono text-[11px] tabular-nums">
+              <span className="w-5 shrink-0 text-right text-xs tabular-nums">
                 {n}
               </span>
             </div>
@@ -205,7 +163,7 @@ function Segments({ prospects }: { prospects: Prospect[] }) {
           const open = r.total - r.lost - r.won
           return (
             <div key={r.seg} className="flex items-center gap-2">
-              <span className="flex-1 min-w-0 truncate font-mono text-[11px] text-muted">{r.seg}</span>
+              <span className="flex-1 min-w-0 truncate text-xs text-muted">{r.seg}</span>
               <div className="flex h-4 flex-1 overflow-hidden bg-rule/50">
                 {r.won > 0 && (
                   <div className="h-full bg-deep" style={{ width: `${(r.won / r.total) * 100}%` }} />
@@ -217,7 +175,7 @@ function Segments({ prospects }: { prospects: Prospect[] }) {
                   <div className="h-full bg-seal" style={{ width: `${(r.lost / r.total) * 100}%` }} />
                 )}
               </div>
-              <span className="w-5 shrink-0 text-right font-mono text-[11px] tabular-nums">{r.total}</span>
+              <span className="w-5 shrink-0 text-right text-xs tabular-nums">{r.total}</span>
             </div>
           )
         })}
@@ -237,7 +195,7 @@ function TopGaps({ prospects, onOpen }: { prospects: Prospect[]; onOpen: (p: Pro
   return (
     <section>
       <h2 className="eyebrow">Maiores lacunas</h2>
-      <p className="mt-1 text-[12px] leading-relaxed text-muted">
+      <p className="mt-1 text-xs leading-relaxed text-muted">
         Bem avaliados no Google, mal representados na internet.
       </p>
       <ol className="mt-3 space-y-1.5">
@@ -249,10 +207,10 @@ function TopGaps({ prospects, onOpen }: { prospects: Prospect[]; onOpen: (p: Pro
                 onClick={() => onOpen(p)}
                 className="flex w-full items-baseline gap-2 text-left hover:underline"
               >
-                <span className="font-mono text-xs font-semibold tabular-nums text-gold">
+                <span className="text-xs tabular-nums font-semibold tabular-nums text-gold">
                   +{(gap.size as number).toFixed(1)}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[13px]">{p.name}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">{p.name}</span>
               </button>
             </li>
           )

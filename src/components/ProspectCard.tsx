@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { Prospect, ProspectUpdate } from '../lib/database.types'
+import type { OnUpdate } from '../lib/useProspects'
+import type { Prospect } from '../lib/database.types'
 import {
   RISK_LABEL,
   RISK_TONE,
@@ -21,7 +22,7 @@ import { ArchiveIcon, QuickActions } from './QuickActions'
 
 type Props = {
   prospect: Prospect
-  onUpdate: (id: string, patch: ProspectUpdate) => Promise<boolean>
+  onUpdate: OnUpdate
   onOpen: (p: Prospect) => void
   tone?: 'overdue' | 'normal'
 }
@@ -115,6 +116,11 @@ function CheckIcon({ size }: { size: number }) {
   )
 }
 
+const PRIMARY =
+  'hit inline-flex items-center gap-1.5 rounded-sm bg-ink px-3 py-2 text-sm font-medium text-paper transition-opacity hover:opacity-85'
+const SECONDARY =
+  'hit inline-flex items-center gap-1.5 rounded-sm border border-rule px-3 py-2 text-sm transition-colors hover:bg-paper'
+
 export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }: Props) {
   const [copied, setCopied] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
@@ -138,7 +144,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
       ...(antesDoContato
         ? { status: 'contatado' as const }
         : { next_action_at: addDaysISO(3) }),
-    })
+    }, 'Contato registrado')
   }
 
   /** Empurra a próxima ação e soma uma tentativa, sem sair do card. */
@@ -146,7 +152,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
     void onUpdate(p.id, {
       next_action_at: addBusinessDaysISO(3),
       contact_attempts: p.contact_attempts + 1,
-    })
+    }, 'Nova cobrança registrada')
   }
 
   const podeCobrarDeNovo =
@@ -158,7 +164,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
       status: 'descartado',
       next_action_at: null,
       notes: note ? (p.notes ? `${p.notes}\n\n${note}` : note) : p.notes,
-    })
+    }, `${p.name} descartado`)
   }
 
   return (
@@ -173,19 +179,19 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
         <div className="min-w-0">
           <button
             onClick={() => onOpen(p)}
-            className="text-left font-display text-[15px] font-semibold leading-snug tracking-tight hover:underline"
+            className="text-left font-display text-base font-semibold leading-snug tracking-tight hover:underline"
           >
             {p.name}
             {lastActivity && (
               <span
-                className={`ml-1 font-mono text-[11px] font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
+                className={`ml-1 text-xs font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
                 title={`Última atividade social: ${lastActivity}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
               >
                 · {lastActivity}
               </span>
             )}
           </button>
-          <p className="mt-0.5 font-mono text-[11px] text-muted">
+          <p className="mt-0.5 text-xs text-muted">
             {p.segment}
             {p.next_action_at && (
               <>
@@ -199,7 +205,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span
-            className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_TONE[p.status]}`}
+            className={`rounded-full px-2 py-0.5 font-mono text-xs uppercase tracking-wider ${STATUS_TONE[p.status]}`}
           >
             {STATUS_LABEL[p.status]}
           </span>
@@ -208,77 +214,66 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
       </div>
 
       {p.problem && (
-        <p className="mt-2.5 line-clamp-2 text-[13px] leading-relaxed text-muted">{p.problem}</p>
+        <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-muted">{p.problem}</p>
       )}
 
       <div className="mt-3">
         <GapMeter prospect={p} compact />
       </div>
 
-      <div className="mt-auto flex flex-wrap items-start gap-3 rule-top pt-3.5">
-        <div className="min-w-0 flex-1">
-          <QuickActions prospect={p} />
-        </div>
-
-        {/* Empilhado e ancorado à direita quando o card é estreito (ex: grid de 3
-            colunas); em linha quando o card tem largura suficiente. Usa
-            container query em vez de breakpoint de viewport porque a largura
-            do card depende do grid, não da tela. */}
-        <div className="ml-auto flex flex-col items-end gap-1.5 @sm:flex-row @sm:items-center">
-          <div className="flex items-center gap-1.5">
-            {p.approach_message && (
-              <button
-                onClick={copyApproach}
-                title={copied ? 'Copiado' : 'Copiar abordagem'}
-                aria-label="Copiar abordagem"
-                className="rounded-sm bg-ink p-1.5 text-paper transition-opacity hover:opacity-85"
-              >
-                {copied ? <CheckIcon size={13} /> : <ClipboardCopyIcon size={13} />}
-              </button>
-            )}
-
-            {(p.status === 'triagem' || p.status === 'prototipado') && (
-              <button
-                onClick={markContacted}
-                title="Marcar contato"
-                aria-label="Marcar contato"
-                className="rounded-sm border border-rule p-1.5 text-ink transition-colors hover:bg-paper"
-              >
-                <ContactIcon size={13} />
-              </button>
-            )}
-
-            {podeCobrarDeNovo && (
-              <button
-                onClick={cobrarDeNovo}
-                title="Cobrei de novo"
-                aria-label="Cobrei de novo"
-                className="rounded-sm border border-gold/40 p-1.5 text-gold transition-colors hover:bg-gold/10"
-              >
-                <RepeatIcon size={13} />
-              </button>
-            )}
-
-            {canDiscard(p) && (
-              <button
-                onClick={() => setDiscardOpen(true)}
-                title="Descartar"
-                aria-label="Descartar"
-                className="rounded-sm border border-seal/40 p-1.5 text-seal transition-colors hover:bg-seal/10"
-              >
-                <ArchiveIcon size={13} />
-              </button>
-            )}
-          </div>
-
-          {p.status === 'novo' && proto ? (
+      <div className="mt-auto rule-top pt-3.5">
+        <div className="flex items-center gap-2">
+          {/* Uma acao principal, com texto, decidida pelo status. */}
+          {(p.status === 'triagem' || p.status === 'prototipado') && (
+            <button onClick={markContacted} className={PRIMARY}>
+              <ContactIcon size={14} />
+              Marquei contato
+            </button>
+          )}
+          {podeCobrarDeNovo && (
+            <button onClick={cobrarDeNovo} className={PRIMARY}>
+              <RepeatIcon size={14} />
+              Cobrei de novo
+            </button>
+          )}
+          {p.status === 'novo' && proto && (
             <button
-              onClick={() => void onUpdate(p.id, { status: 'prototipado' })}
-              className="rounded-sm border border-deep/40 px-2.5 py-1.5 font-mono text-[11px] text-deep transition-colors hover:bg-deep/10"
+              onClick={() => void onUpdate(p.id, { status: 'prototipado' }, 'Marcado como prototipado')}
+              className={PRIMARY}
             >
               Marcar prototipado
             </button>
-          ) : null}
+          )}
+          {p.approach_message && (
+            <button onClick={copyApproach} className={SECONDARY}>
+              {copied ? <CheckIcon size={14} /> : <ClipboardCopyIcon size={14} />}
+              {copied ? 'Copiado' : 'Copiar abordagem'}
+            </button>
+          )}
+
+          {canDiscard(p) && (
+            <details className="relative ml-auto">
+              <summary
+                aria-label="Mais ações"
+                className="hit grid h-9 w-9 cursor-pointer list-none place-items-center rounded-sm text-lg leading-none text-muted hover:bg-paper [&::-webkit-details-marker]:hidden"
+              >
+                ···
+              </summary>
+              <div className="absolute bottom-full right-0 z-10 mb-1 w-36 rounded-sm border border-rule bg-card p-1 shadow-lg">
+                <button
+                  onClick={() => setDiscardOpen(true)}
+                  className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-seal hover:bg-seal/10"
+                >
+                  <ArchiveIcon size={14} />
+                  Descartar
+                </button>
+              </div>
+            </details>
+          )}
+        </div>
+
+        <div className="mt-2.5">
+          <QuickActions prospect={p} max={4} />
         </div>
       </div>
 

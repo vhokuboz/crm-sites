@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import { useDialogFocus } from '../lib/useDialogFocus'
 import type { Prospect } from '../lib/database.types'
 
 type Props = {
@@ -27,6 +28,7 @@ async function invokeAddProspect(googleMapsUrl: string, instagramUrl: string) {
 }
 
 export function AddProspectModal({ onCreated, onClose }: Props) {
+  const dialogRef = useDialogFocus<HTMLDivElement>()
   const [mapsUrl, setMapsUrl] = useState('')
   const [igUrl, setIgUrl] = useState('')
   const [busy, setBusy] = useState(false)
@@ -52,6 +54,7 @@ export function AddProspectModal({ onCreated, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-ink/25 p-4">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Novo prospect"
@@ -67,13 +70,13 @@ export function AddProspectModal({ onCreated, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-[11px] hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-xs hover:bg-card"
           >
             Fechar
           </button>
         </div>
 
-        <p className="mt-2 text-[13px] leading-relaxed text-muted">
+        <p className="mt-2 text-sm leading-relaxed text-muted">
           Informe pelo menos um dos links. Quando o Google Maps é informado, nome, endereço,
           nota, avaliações, telefone e site vêm dele automaticamente. Segmento e problema
           ficam para revisar na ficha depois.

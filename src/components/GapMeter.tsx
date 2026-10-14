@@ -38,7 +38,7 @@ export function GapMeter({ prospect, compact = false }: { prospect: Prospect; co
       />
 
       {gap.size !== null && gap.size > 0 && !compact && (
-        <p className="pt-0.5 font-mono text-[11px] text-muted">
+        <p className="pt-0.5 font-mono text-xs text-muted">
           lacuna de{' '}
           <span className="font-semibold text-ink">{gap.size.toFixed(1)} pontos</span> entre o
           que dizem dele e o que ele mostra
@@ -63,7 +63,7 @@ function Bar({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="w-16 shrink-0 font-mono text-[10px] uppercase tracking-wider text-muted">
+      <span className="w-16 shrink-0 font-mono text-xs uppercase tracking-wider text-muted">
         {label}
       </span>
       <div className="h-1.5 flex-1 rounded-full bg-rule/70">
@@ -74,7 +74,7 @@ function Bar({
           />
         )}
       </div>
-      <span className="w-32 shrink-0 truncate text-right font-mono text-[10px] text-muted">
+      <span className="w-32 shrink-0 truncate text-right font-mono text-xs text-muted">
         {note}
       </span>
     </div>

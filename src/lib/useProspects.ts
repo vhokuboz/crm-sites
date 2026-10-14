@@ -4,14 +4,20 @@ import { closesHostedSite, statusTransitionPatch } from './domain'
 import { serviceStartPatch } from './service'
 import type { Prospect, ProspectUpdate } from './database.types'
 
+type Toast = { message: string; undo: () => void }
+
 type State = {
   prospects: Prospect[]
   loading: boolean
   error: string | null
+  toast: Toast | null
 }
 
+/** `undoLabel` ("Marcado como contatado") liga o aviso com Desfazer apos salvar. */
+export type OnUpdate = (id: string, patch: ProspectUpdate, undoLabel?: string) => Promise<boolean>
+
 export function useProspects() {
-  const [state, setState] = useState<State>({ prospects: [], loading: true, error: null })
+  const [state, setState] = useState<State>({ prospects: [], loading: true, error: null, toast: null })
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -20,10 +26,10 @@ export function useProspects() {
       .order('name', { ascending: true })
 
     if (error) {
-      setState({ prospects: [], loading: false, error: error.message })
+      setState((s) => ({ ...s, prospects: [], loading: false, error: error.message }))
       return
     }
-    setState({ prospects: data ?? [], loading: false, error: null })
+    setState((s) => ({ ...s, prospects: data ?? [], loading: false, error: null }))
   }, [])
 
   useEffect(() => {
@@ -34,7 +40,7 @@ export function useProspects() {
    * Escreve otimista: a tela responde na hora e o registro volta ao valor
    * anterior se o banco recusar (uma policy negando, por exemplo).
    */
-  const update = useCallback(async (id: string, patch: ProspectUpdate) => {
+  const update = useCallback<OnUpdate>(async (id, patch, undoLabel) => {
     let previous: Prospect | undefined
     setState((s) => {
       previous = s.prospects.find((p) => p.id === id)
@@ -77,10 +83,21 @@ export function useProspects() {
       return false
     }
 
+    // Desfazer regrava so os campos que a acao tocou, com o valor de antes.
+    const before = previous
+    const revert = before
+      ? (Object.fromEntries(
+          Object.keys(finalPatch).map((k) => [k, before[k as keyof Prospect]]),
+        ) as ProspectUpdate)
+      : null
     setState((s) => ({
       ...s,
       error: null,
       prospects: s.prospects.map((p) => (p.id === id ? data : p)),
+      toast:
+        undoLabel && revert && !closesHostedSite(before!, patch)
+          ? { message: undoLabel, undo: () => void update(id, revert, 'Desfeito') }
+          : s.toast,
     }))
 
     if (previous && closesHostedSite(previous, patch)) {
@@ -103,5 +120,7 @@ export function useProspects() {
     setState((s) => ({ ...s, error: null }))
   }, [])
 
-  return { ...state, reload: load, update, dismissError }
+  const dismissToast = useCallback(() => setState((s) => ({ ...s, toast: null })), [])
+
+  return { ...state, reload: load, update, dismissError, dismissToast }
 }

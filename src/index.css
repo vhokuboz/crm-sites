@@ -1,24 +1,27 @@
 @import 'tailwindcss';
 
 /*
-  Direcao visual: ficha de campo.
-  O trabalho aqui e de rua -- olhar um comercio de Bauru, medir reputacao contra
-  presenca digital e bater na porta. A paleta vem dai: papel levemente esverdeado,
-  tinta verde-escura, ocre de estrela do Google e vermelho de carimbo para o que atrasou.
+  Marca Okai (okaisites.com.br): papel creme quente, tinta quase preta, pincelada
+  de sumi-e no logo. O vermelho e o do carimbo (hanko) do logotipo e marca o que
+  atrasou; o ocre fica so para estrela do Google e alertas de renovacao.
+  Tokens espelham o site: background #f7f3ec, card #fffdf9, foreground #171412.
 */
 @theme {
-  --color-paper: #edefe8;
-  --color-card: #fbfbf7;
-  --color-ink: #17211c;
-  --color-muted: #6a746c;
-  --color-rule: #d5d8ce;
-  --color-seal: #a8342a;
-  --color-gold: #b5811a;
-  --color-deep: #2c4a3e;
+  --color-paper: #f7f3ec;
+  --color-card: #fffdf9;
+  --color-ink: #171412;
+  --color-muted: #6b6359;
+  --color-rule: #ddd3c2;
+  --color-seal: #b9514b;
+  --color-gold: #8f6410;
+  --color-deep: #3d3a37;
+  --color-cream: #eae1d2;
 
-  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
-  --font-body: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-display: 'Lora', Georgia, serif;
+  --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+
+  --radius-sm: 0.4rem;
 }
 
 @layer base {
@@ -57,11 +60,23 @@
   /* Etiqueta estrutural: usada em cabecalhos de secao e rotulos de dado. */
   .eyebrow {
     font-family: var(--font-mono);
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--color-muted);
+  }
+
+  /* Amplia a area de toque sem mexer no layout (alvos de 44px em tela de toque). */
+  @media (pointer: coarse) {
+    .hit {
+      position: relative;
+    }
+    .hit::after {
+      content: '';
+      position: absolute;
+      inset: -0.5rem;
+    }
   }
 
   .rule-top {

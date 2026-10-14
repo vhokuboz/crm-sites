@@ -1,10 +1,11 @@
-import type { Prospect, ProspectUpdate } from '../lib/database.types'
+import type { OnUpdate } from '../lib/useProspects'
+import type { Prospect } from '../lib/database.types'
 import { serviceGroups, serviceSummary, type ServiceGroupKey } from '../lib/service'
 import { ClienteRow } from './ClienteRow'
 
 type Props = {
   prospects: Prospect[]
-  onUpdate: (id: string, patch: ProspectUpdate) => Promise<boolean>
+  onUpdate: OnUpdate
   onOpen: (p: Prospect) => void
 }
 
@@ -32,7 +33,7 @@ export function Clientes({ prospects, onUpdate, onOpen }: Props) {
 
   return (
     <div className="space-y-8">
-      <p className="font-mono text-[12px] text-muted">
+      <p className="font-mono text-xs text-muted">
         {ativos} ativos · {isentos} isentos · {pagantes} pagantes · R$ {brl(mrr)}/mês
       </p>
 

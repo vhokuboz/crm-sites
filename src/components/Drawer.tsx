@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { OnUpdate } from '../lib/useProspects'
 import type { Prospect, ProspectStatus, ProspectUpdate } from '../lib/database.types'
 import {
   ALL_STATUS,
@@ -52,7 +53,7 @@ import {
 
 type Props = {
   prospect: Prospect
-  onUpdate: (id: string, patch: ProspectUpdate) => Promise<boolean>
+  onUpdate: OnUpdate
   onReload: () => Promise<void>
   onClose: () => void
 }
@@ -471,7 +472,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               )}
               <button
                 onClick={onClose}
-                className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-[11px] hover:bg-card"
+                className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-xs hover:bg-card"
               >
                 Fechar
               </button>
@@ -488,7 +489,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               >
                 Salvar
               </button>
-              {saved && <span className="font-mono text-[11px] text-deep">Salvo</span>}
+              {saved && <span className="font-mono text-xs text-deep">Salvo</span>}
             </div>
           </div>
         </header>
@@ -536,12 +537,12 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                     void onUpdate(p.id, { next_action_at: addDaysISO(2) })
                   }
                 }}
-                className="rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card"
+                className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs hover:bg-card"
               >
                 Cobrei de novo
               </button>
               {p.status === 'contatado' && (
-                <p className="mt-1.5 font-mono text-[11px] text-muted">
+                <p className="mt-1.5 font-mono text-xs text-muted">
                   {p.contact_attempts} tentativa{p.contact_attempts === 1 ? '' : 's'}
                 </p>
               )}
@@ -553,12 +554,12 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               <div className="flex items-center gap-2">
                 <h3 className="eyebrow">Serviço</h3>
                 <span
-                  className={`rounded-sm px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${SERVICE_TONE[service]}`}
+                  className={`rounded-sm px-2 py-0.5 font-mono text-xs uppercase tracking-wider ${SERVICE_TONE[service]}`}
                 >
                   {SERVICE_LABEL[service]}
                 </span>
               </div>
-              <p className="font-mono text-[11px] text-muted">
+              <p className="font-mono text-xs text-muted">
                 {[serviceDateLabel(p), reminderLabel(p), p.monthly_fee ? `R$ ${p.monthly_fee}/mês` : null]
                   .filter(Boolean)
                   .join(' · ')}
@@ -571,15 +572,15 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
             <h3 className="eyebrow">Negócio</h3>
             <div className="grid grid-cols-2 gap-4">
               <label className="block">
-                <span className="font-mono text-[11px] text-muted">Valor combinado (R$)</span>
+                <span className="font-mono text-xs text-muted">Valor combinado (R$)</span>
                 <CurrencyInput value={dealValue} onChange={setDealValue} placeholder="0,00" />
               </label>
               <label className="block">
-                <span className="font-mono text-[11px] text-muted">Mensalidade (R$)</span>
+                <span className="font-mono text-xs text-muted">Mensalidade (R$)</span>
                 <CurrencyInput value={monthlyFee} onChange={setMonthlyFee} placeholder="Sem hospedagem com a gente" />
               </label>
             </div>
-            <label className="flex items-center gap-2 text-[13px]">
+            <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={docsReceived}
@@ -589,11 +590,11 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
             </label>
             <div className="grid grid-cols-2 gap-4">
               <label className="block">
-                <span className="font-mono text-[11px] text-muted">Sinal recebido (R$)</span>
+                <span className="font-mono text-xs text-muted">Sinal recebido (R$)</span>
                 <CurrencyInput value={depositPaidAmount} onChange={setDepositPaidAmount} placeholder="0,00" />
               </label>
               <label className="block">
-                <span className="font-mono text-[11px] text-muted">Pagamento final (R$)</span>
+                <span className="font-mono text-xs text-muted">Pagamento final (R$)</span>
                 <CurrencyInput value={finalPaidAmount} onChange={setFinalPaidAmount} placeholder="0,00" />
               </label>
             </div>
@@ -609,7 +610,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                       type="button"
                       onClick={handleDownloadContract}
                       disabled={downloadingContract}
-                      className="rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card disabled:opacity-40"
+                      className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs hover:bg-card disabled:opacity-40"
                     >
                       {downloadingContract ? 'Abrindo…' : 'Baixar contrato'}
                     </button>
@@ -619,7 +620,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                         setContractError(null)
                         setContractModalOpen(true)
                       }}
-                      className="rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card"
+                      className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs hover:bg-card"
                     >
                       Refazer contrato
                     </button>
@@ -631,14 +632,14 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                       setContractError(null)
                       setContractModalOpen(true)
                     }}
-                    className="rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card"
+                    className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs hover:bg-card"
                   >
                     Gerar contrato
                   </button>
                 )}
               </div>
               {p.contract_generated_at && (
-                <p className="font-mono text-[11px] text-muted">
+                <p className="font-mono text-xs text-muted">
                   Gerado em {formatDateBR(p.contract_generated_at)}
                 </p>
               )}
@@ -718,7 +719,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
 
             {!p.whatsapp && (
               <label className="mt-3 block">
-                <span className="font-mono text-[11px] text-muted">WhatsApp</span>
+                <span className="font-mono text-xs text-muted">WhatsApp</span>
                 <input
                   type="tel"
                   value={whatsapp}
@@ -734,7 +735,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 href={wa}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="mt-3 inline-block rounded-sm bg-deep px-3 py-2 font-mono text-[11px] font-medium text-card hover:opacity-90"
+                className="mt-3 inline-block rounded-sm bg-deep px-3 py-2 font-mono text-xs font-medium text-card hover:opacity-90"
               >
                 Abrir WhatsApp com a abordagem
               </a>
@@ -744,7 +745,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
           <section className="space-y-3">
             <h3 className="eyebrow">Protótipo e e-mail</h3>
             <label className="block">
-              <span className="font-mono text-[11px] text-muted">URL do protótipo</span>
+              <span className="font-mono text-xs text-muted">URL do protótipo</span>
               <input
                 type="url"
                 value={landing}
@@ -754,7 +755,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               />
             </label>
             <label className="block">
-              <span className="font-mono text-[11px] text-muted">E-mail</span>
+              <span className="font-mono text-xs text-muted">E-mail</span>
               <input
                 type="email"
                 value={email}
@@ -764,7 +765,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               />
             </label>
             {proto && (
-              <p className="font-mono text-[11px] text-muted">
+              <p className="font-mono text-xs text-muted">
                 Publicado em{' '}
                 <a
                   href={proto}
@@ -777,7 +778,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               </p>
             )}
             {status === 'triagem' && landing.trim() && (
-              <p className="font-mono text-[11px] text-deep">
+              <p className="font-mono text-xs text-deep">
                 Ao salvar, o status passa de Triagem para Prototipado.
               </p>
             )}
@@ -900,7 +901,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               type="button"
               onClick={addSocialDraft}
               disabled={remainingSocialFields.length === 0}
-              className="rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card disabled:opacity-40"
+              className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs hover:bg-card disabled:opacity-40"
             >
               + Adicionar informações
             </button>
@@ -912,7 +913,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               value={approach}
               onChange={(e) => setApproach(e.target.value)}
               rows={7}
-              className="mt-2 w-full resize-y rounded-sm border border-rule bg-card p-3 text-[13px] leading-relaxed"
+              className="mt-2 w-full resize-y rounded-sm border border-rule bg-card p-3 text-sm leading-relaxed"
             />
           </section>
 
@@ -923,11 +924,11 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               onChange={(e) => setNotes(e.target.value)}
               rows={4}
               placeholder="O que foi conversado, objeções, valores."
-              className="mt-2 w-full resize-y rounded-sm border border-rule bg-card p-3 text-[13px] leading-relaxed placeholder:text-muted/70"
+              className="mt-2 w-full resize-y rounded-sm border border-rule bg-card p-3 text-sm leading-relaxed placeholder:text-muted/70"
             />
           </section>
 
-          <footer className="rule-top pt-4 font-mono text-[11px] text-muted">
+          <footer className="rule-top pt-4 font-mono text-xs text-muted">
             Prospectado em {formatDateBR(p.prospected_at)}
             {p.last_contacted_at && ` · último contato em ${formatDateBR(p.last_contacted_at)}`}
           </footer>

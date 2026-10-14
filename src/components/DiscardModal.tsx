@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useDialogFocus } from '../lib/useDialogFocus'
 import type { Prospect } from '../lib/database.types'
 
 type Props = {
@@ -13,7 +14,10 @@ type Props = {
  * header pra encerrar o prospect. Mesmo padrão de modal do ContractModal.
  */
 export function DiscardModal({ prospect, onConfirm, onClose }: Props) {
-  const [confirmed, setConfirmed] = useState(false)
+  const dialogRef = useDialogFocus<HTMLDivElement>()
+  // So pede a caixa quando o descarte apaga a hospedagem (irreversivel); o resto tem Desfazer.
+  const needsConfirm = !!prospect.landing_page_url
+  const [confirmed, setConfirmed] = useState(!needsConfirm)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -36,6 +40,7 @@ export function DiscardModal({ prospect, onConfirm, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-ink/25 p-4">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={`Descartar ${prospect.name}`}
@@ -51,13 +56,13 @@ export function DiscardModal({ prospect, onConfirm, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-[11px] hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-xs hover:bg-card"
           >
             Fechar
           </button>
         </div>
 
-        <p className="mt-3 text-[13px] leading-relaxed text-muted">
+        <p className="mt-3 text-sm leading-relaxed text-muted">
           Move para "Descartado" e apaga a próxima ação agendada
           {prospect.landing_page_url ? ', além de remover a hospedagem do preview publicado' : ''}.
         </p>
@@ -74,10 +79,12 @@ export function DiscardModal({ prospect, onConfirm, onClose }: Props) {
             />
           </label>
 
-          <label className="flex items-center gap-2 text-[13px]">
-            <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
-            Tenho certeza que quero descartar
-          </label>
+          {needsConfirm && (
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
+              Tenho certeza que quero descartar
+            </label>
+          )}
 
           <button
             type="submit"

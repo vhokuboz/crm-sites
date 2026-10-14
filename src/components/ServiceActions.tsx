@@ -1,18 +1,19 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import type { Prospect, ProspectUpdate } from '../lib/database.types'
+import type { OnUpdate } from '../lib/useProspects'
+import type { Prospect } from '../lib/database.types'
 import { todayISO } from '../lib/domain'
 import { continuePatch, pixReceivedPatch, serviceState } from '../lib/service'
 import { ServiceCloseModal } from './ServiceCloseModal'
 
 type Props = {
   prospect: Prospect
-  onUpdate: (id: string, patch: ProspectUpdate) => Promise<boolean>
+  onUpdate: OnUpdate
   /** A ficha usa isto pra não fechar inteira com o Escape de um modal aberto por cima. */
   onModalChange?: (open: boolean) => void
 }
 
-const BTN = 'rounded-sm border border-rule px-3 py-1.5 font-mono text-[11px] hover:bg-card disabled:opacity-40'
-const BTN_DANGER = 'rounded-sm border border-seal/40 px-3 py-1.5 font-mono text-[11px] text-seal hover:bg-seal/10'
+const BTN = 'hit rounded-sm border border-rule px-3 py-2 text-sm hover:bg-card disabled:opacity-40'
+const BTN_DANGER = 'hit rounded-sm border border-seal/40 px-3 py-2 text-sm text-seal hover:bg-seal/10'
 
 /** Botões do ciclo do serviço, conforme o estado derivado do cliente. */
 export function ServiceActions({ prospect: p, onUpdate, onModalChange }: Props) {
@@ -30,17 +31,17 @@ export function ServiceActions({ prospect: p, onUpdate, onModalChange }: Props) 
 
   function handleContinue(e: FormEvent) {
     e.preventDefault()
-    if (feeValue > 0) void onUpdate(p.id, continuePatch(p, feeValue))
+    if (feeValue > 0) void onUpdate(p.id, continuePatch(p, feeValue), 'Cliente segue no plano')
   }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       {state === 'suspenso' ? (
         <>
-          <button type="button" className={BTN} onClick={() => void onUpdate(p.id, { suspended_at: null })}>
+          <button type="button" className={BTN} onClick={() => void onUpdate(p.id, { suspended_at: null }, 'Site reativado')}>
             Reativar
           </button>
-          <p className="w-full font-mono text-[11px] text-muted">
+          <p className="w-full text-xs text-muted">
             Site derrubado. Depois de reativar, rode o deploy de {p.slug ?? 'este cliente'} no
             agent-okaisites (workflow manual).
           </p>
@@ -58,14 +59,14 @@ export function ServiceActions({ prospect: p, onUpdate, onModalChange }: Props) 
                 onChange={(e) => setFee(e.target.value)}
                 placeholder="Mensalidade (R$)"
                 aria-label="Mensalidade (R$)"
-                className="w-36 rounded-sm border border-rule bg-card px-2 py-1.5 text-sm"
+                className="w-40 rounded-sm border border-rule bg-card px-2 py-2 text-sm"
               />
               <button type="submit" disabled={!(feeValue > 0)} className={BTN}>
                 Vai continuar
               </button>
             </form>
           ) : (
-            <button type="button" className={BTN} onClick={() => void onUpdate(p.id, pixReceivedPatch(p))}>
+            <button type="button" className={BTN} onClick={() => void onUpdate(p.id, pixReceivedPatch(p), 'Pix registrado')}>
               Pix recebido
             </button>
           )}
@@ -73,7 +74,7 @@ export function ServiceActions({ prospect: p, onUpdate, onModalChange }: Props) 
             <button
               type="button"
               className={BTN}
-              onClick={() => void onUpdate(p.id, { last_reminded_at: todayISO() })}
+              onClick={() => void onUpdate(p.id, { last_reminded_at: todayISO() }, 'Lembrete registrado')}
             >
               Lembrei o cliente
             </button>
@@ -85,7 +86,12 @@ export function ServiceActions({ prospect: p, onUpdate, onModalChange }: Props) 
           )}
         </>
       )}
-      <button type="button" className={BTN_DANGER} onClick={() => setModal('encerrar')}>
+      {/* Destrutivo e raro: afastado das ações de rotina e sem peso de botão. */}
+      <button
+        type="button"
+        className="hit ml-auto rounded-sm px-2 py-2 text-sm text-muted underline underline-offset-2 hover:text-seal"
+        onClick={() => setModal('encerrar')}
+      >
         Encerrar cliente
       </button>
 

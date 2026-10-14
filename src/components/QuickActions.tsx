@@ -25,9 +25,11 @@ type Props = {
   size?: 'sm' | 'md'
   /** Sem caixa/outline: só o ícone como informação visual, ainda clicável. Usado no card do funil. */
   bare?: boolean
+  /** Quantos atalhos aparecem; o resto vai para o menu "+N". */
+  max?: number
 }
 
-export function QuickActions({ prospect: p, size = 'sm', bare = false }: Props) {
+export function QuickActions({ prospect: p, size = 'sm', bare = false, max }: Props) {
   const [copied, setCopied] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
 
@@ -51,25 +53,107 @@ export function QuickActions({ prospect: p, size = 'sm', bare = false }: Props) 
   if (!proto && !wa && !ig && !site && !fb && !bio && !email && !source && images.length === 0)
     return null
 
-  const box = bare ? 'h-5 w-5' : size === 'md' ? 'h-9 w-9' : 'h-8 w-8'
+  const box = bare ? 'h-5 w-5' : size === 'md' ? 'h-9 w-9' : 'h-9 w-9'
   const icon = bare ? 13 : size === 'md' ? 18 : 16
+
+  const emailClass = bare
+    ? `grid ${box} place-items-center transition-colors ${copied ? 'text-deep' : 'text-ink/70 hover:text-deep'}`
+    : `grid ${box} place-items-center rounded-sm border transition-colors ${
+        copied ? 'border-deep bg-deep text-card' : 'border-rule text-ink hover:bg-paper'
+      }`
+  const imagesClass = bare
+    ? `grid ${box} place-items-center text-ink/70 transition-colors hover:text-deep`
+    : `grid ${box} place-items-center rounded-sm border border-rule text-ink transition-colors hover:bg-paper`
+
+  const items: React.ReactNode[] = []
+  if (images.length > 0)
+    items.push(
+      <button
+        key="img"
+        type="button"
+        onClick={() => setPreviewOpen(true)}
+        title="Ver previews do protótipo"
+        aria-label="Ver previews do protótipo"
+        className={`hit ${imagesClass}`}
+      >
+        <ImagesIcon size={icon} />
+      </button>,
+    )
+  if (proto)
+    items.push(
+      <IconLink key="proto" href={proto} label="Abrir o protótipo do site" box={box} bare={bare} highlight>
+        <PrototypeIcon size={icon} />
+      </IconLink>,
+    )
+  if (wa)
+    items.push(
+      <IconLink key="wa" href={wa} label="Abrir WhatsApp com a abordagem" box={box} bare={bare}>
+        <WhatsAppIcon size={icon} />
+      </IconLink>,
+    )
+  if (ig)
+    items.push(
+      <IconLink key="ig" href={ig} label="Abrir o Instagram" box={box} bare={bare}>
+        <InstagramIcon size={icon} />
+      </IconLink>,
+    )
+  if (email)
+    items.push(
+      <button
+        key="mail"
+        type="button"
+        onClick={copyEmail}
+        title={copied ? 'E-mail copiado' : `Copiar e-mail (${email})`}
+        aria-label={copied ? 'E-mail copiado' : `Copiar e-mail ${email}`}
+        className={`hit ${emailClass}`}
+      >
+        {copied ? <CheckIcon size={icon} /> : <MailIcon size={icon} />}
+      </button>,
+    )
+  if (site)
+    items.push(
+      <IconLink key="site" href={site} label="Abrir o site atual do cliente" box={box} bare={bare}>
+        <GlobeIcon size={icon} />
+      </IconLink>,
+    )
+  if (fb)
+    items.push(
+      <IconLink key="fb" href={fb} label="Abrir o Facebook" box={box} bare={bare}>
+        <FacebookIcon size={icon} />
+      </IconLink>,
+    )
+  if (bio)
+    items.push(
+      <IconLink key="bio" href={bio} label="Abrir o link na bio" box={box} bare={bare}>
+        <LinkIcon size={icon} />
+      </IconLink>,
+    )
+  // Sempre por último: posição fixa na lista, já que esse link vai existir em todo registro.
+  if (source)
+    items.push(
+      <IconLink key="src" href={source} label="Abrir a origem do lead" box={box} bare={bare}>
+        <PinIcon size={icon} />
+      </IconLink>,
+    )
+
+  const shown = max && items.length > max ? items.slice(0, max) : items
+  const rest = max && items.length > max ? items.slice(max) : []
 
   return (
     <div className={`flex flex-wrap items-center ${bare ? 'justify-end gap-0.5' : 'gap-1'}`}>
-      {images.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setPreviewOpen(true)}
-          title="Ver previews do protótipo"
-          aria-label="Ver previews do protótipo"
-          className={
-            bare
-              ? `grid ${box} place-items-center text-ink/70 transition-colors hover:text-deep`
-              : `grid ${box} place-items-center rounded-sm border border-rule text-ink transition-colors hover:bg-paper`
-          }
-        >
-          <ImagesIcon size={icon} />
-        </button>
+      {shown}
+      {rest.length > 0 && (
+        <details className="relative">
+          <summary
+            aria-label={`Mais ${rest.length} atalhos`}
+            className={`hit grid ${box} cursor-pointer list-none place-items-center rounded-sm border border-rule text-xs text-muted hover:bg-paper [&::-webkit-details-marker]:hidden`}
+          >
+            +{rest.length}
+          </summary>
+          <div className="absolute bottom-full left-0 z-10 mb-1 flex gap-1 rounded-sm border border-rule bg-card p-1 shadow-lg">
+            {rest}
+          </div>
+        </details>
       )}
       {previewOpen && (
         <ImagePreviewModal
@@ -77,59 +161,6 @@ export function QuickActions({ prospect: p, size = 'sm', bare = false }: Props) 
           title={`Previews de ${p.name}`}
           onClose={() => setPreviewOpen(false)}
         />
-      )}
-      {proto && (
-        <IconLink href={proto} label="Abrir o protótipo do site" box={box} bare={bare} highlight>
-          <PrototypeIcon size={icon} />
-        </IconLink>
-      )}
-      {wa && (
-        <IconLink href={wa} label="Abrir WhatsApp com a abordagem" box={box} bare={bare}>
-          <WhatsAppIcon size={icon} />
-        </IconLink>
-      )}
-      {ig && (
-        <IconLink href={ig} label="Abrir o Instagram" box={box} bare={bare}>
-          <InstagramIcon size={icon} />
-        </IconLink>
-      )}
-      {email && (
-        <button
-          type="button"
-          onClick={copyEmail}
-          title={copied ? 'E-mail copiado' : `Copiar e-mail (${email})`}
-          aria-label={copied ? 'E-mail copiado' : `Copiar e-mail ${email}`}
-          className={
-            bare
-              ? `grid ${box} place-items-center transition-colors ${copied ? 'text-deep' : 'text-ink/70 hover:text-deep'}`
-              : `grid ${box} place-items-center rounded-sm border transition-colors ${
-                  copied ? 'border-deep bg-deep text-card' : 'border-rule text-ink hover:bg-paper'
-                }`
-          }
-        >
-          {copied ? <CheckIcon size={icon} /> : <MailIcon size={icon} />}
-        </button>
-      )}
-      {site && (
-        <IconLink href={site} label="Abrir o site atual do cliente" box={box} bare={bare}>
-          <GlobeIcon size={icon} />
-        </IconLink>
-      )}
-      {fb && (
-        <IconLink href={fb} label="Abrir o Facebook" box={box} bare={bare}>
-          <FacebookIcon size={icon} />
-        </IconLink>
-      )}
-      {bio && (
-        <IconLink href={bio} label="Abrir o link na bio" box={box} bare={bare}>
-          <LinkIcon size={icon} />
-        </IconLink>
-      )}
-      {/* Sempre por último: posição fixa na lista, já que esse link vai existir em todo registro. */}
-      {source && (
-        <IconLink href={source} label="Abrir a origem do lead" box={box} bare={bare}>
-          <PinIcon size={icon} />
-        </IconLink>
       )}
     </div>
   )
@@ -151,10 +182,10 @@ function IconLink({
   children: React.ReactNode
 }) {
   const className = bare
-    ? `grid ${box} place-items-center transition-colors ${
+    ? `hit grid ${box} place-items-center transition-colors ${
         highlight ? 'text-deep' : 'text-ink/70 hover:text-deep'
       }`
-    : `grid ${box} place-items-center rounded-sm border transition-colors ${
+    : `hit grid ${box} place-items-center rounded-sm border transition-colors ${
         highlight
           ? 'border-deep/40 bg-deep/10 text-deep hover:bg-deep hover:text-card'
           : 'border-rule text-ink hover:bg-paper'

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useDialogFocus } from '../lib/useDialogFocus'
 import type { Prospect } from '../lib/database.types'
 
 type Props = {
@@ -29,6 +30,7 @@ const COPY = {
 
 /** Confirmação dupla (checkbox + o confirm do `update`), como o `DiscardModal`. */
 export function ServiceCloseModal({ prospect, kind, onConfirm, onClose }: Props) {
+  const dialogRef = useDialogFocus<HTMLDivElement>()
   const copy = COPY[kind]
   const [confirmed, setConfirmed] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -52,6 +54,7 @@ export function ServiceCloseModal({ prospect, kind, onConfirm, onClose }: Props)
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-ink/25 p-4">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={copy.title(prospect.name)}
@@ -67,16 +70,16 @@ export function ServiceCloseModal({ prospect, kind, onConfirm, onClose }: Props)
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-[11px] hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-xs hover:bg-card"
           >
             Fechar
           </button>
         </div>
 
-        <p className="mt-3 text-[13px] leading-relaxed text-muted">{copy.body}</p>
+        <p className="mt-3 text-sm leading-relaxed text-muted">{copy.body}</p>
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          <label className="flex items-center gap-2 text-[13px]">
+          <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
             {copy.check}
           </label>

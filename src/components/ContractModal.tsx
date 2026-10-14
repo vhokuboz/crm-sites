@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { CONTRACT_EXTRA_FIELDS, missingContractFields, type ContractFormValues } from '../lib/contract'
+import { useDialogFocus } from '../lib/useDialogFocus'
 import type { Prospect } from '../lib/database.types'
 
 type Props = {
@@ -9,6 +10,7 @@ type Props = {
 }
 
 export function ContractModal({ prospect, onSubmit, onClose }: Props) {
+  const dialogRef = useDialogFocus<HTMLDivElement>()
   const fields = missingContractFields(prospect)
   const [file, setFile] = useState<File | null>(null)
   const [form, setForm] = useState<ContractFormValues>({})
@@ -62,6 +64,7 @@ export function ContractModal({ prospect, onSubmit, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-ink/25 p-4">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Gerar contrato"
@@ -77,7 +80,7 @@ export function ContractModal({ prospect, onSubmit, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-[11px] hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-xs hover:bg-card"
           >
             Fechar
           </button>
@@ -111,7 +114,7 @@ export function ContractModal({ prospect, onSubmit, onClose }: Props) {
           })}
 
           {fields.length > 0 && (
-            <label className="flex items-center gap-2 text-[13px]">
+            <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={save} onChange={(e) => setSave(e.target.checked)} />
               Salvar esses dados na ficha do cliente
             </label>

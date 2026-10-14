@@ -1,3 +1,4 @@
+import { useDialogFocus } from '../lib/useDialogFocus'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -10,6 +11,7 @@ type Props = {
 
 /** Modal simples com carrossel para os previews do protótipo. */
 export function ImagePreviewModal({ images, initialIndex = 0, title, onClose }: Props) {
+  const dialogRef = useDialogFocus<HTMLDivElement>()
   const [index, setIndex] = useState(initialIndex)
   const hasMultiple = images.length > 1
 
@@ -36,20 +38,21 @@ export function ImagePreviewModal({ images, initialIndex = 0, title, onClose }: 
       <div className="absolute inset-0 bg-ink/70" onClick={onClose} aria-hidden />
 
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         className="relative flex max-h-full w-full max-w-3xl flex-col"
       >
         <div className="flex items-center justify-between pb-2">
-          <p className="font-mono text-[11px] text-paper/80">
+          <p className="font-mono text-xs text-paper/80">
             {title}
             {hasMultiple && ` · ${index + 1} / ${images.length}`}
           </p>
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="rounded-sm border border-paper/30 px-2.5 py-1 font-mono text-[11px] text-paper hover:bg-paper/10"
+            className="rounded-sm border border-paper/30 px-2.5 py-1 font-mono text-xs text-paper hover:bg-paper/10"
           >
             Fechar
           </button>
