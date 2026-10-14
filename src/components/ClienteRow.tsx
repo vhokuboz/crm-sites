@@ -23,7 +23,7 @@ export function ClienteRow({ prospect: p, onUpdate, onOpen }: Props) {
     <article className="rounded-sm border border-rule bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button type="button" onClick={() => onOpen(p)} className="min-w-0 text-left">
-          <h3 className="truncate font-display text-[15px] font-semibold tracking-tight">{p.name}</h3>
+          <h3 className="truncate font-semibold text-name tracking-tight">{p.name}</h3>
           <p className="mt-0.5 text-xs text-muted">{detalhes.join(' · ')}</p>
         </button>
         <span

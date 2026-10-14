@@ -98,12 +98,14 @@ function RepeatIcon({ size }: { size: number }) {
 }
 
 const PRIMARY =
-  'hit flex min-h-10 w-full items-center justify-center gap-1.5 rounded-sm bg-ink px-3.5 py-2 text-[13px] font-medium text-paper transition-opacity hover:opacity-85'
+  'hit flex min-h-10 w-full items-center justify-center gap-1.5 rounded-sm bg-ink px-3.5 py-2 text-body font-medium text-paper transition-opacity hover:opacity-85 disabled:opacity-50'
 const SECONDARY =
-  'hit inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-sm border border-rule px-2.5 py-1.5 text-[13px] transition-colors hover:bg-paper'
+  'hit inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-sm border border-rule px-2.5 py-1.5 text-body transition-colors hover:bg-paper'
 
 export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }: Props) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState<'ok' | 'erro' | null>(null)
+  // Segura cliques repetidos enquanto a gravacao nao volta ("cobrei de novo" somaria 2x).
+  const [busy, setBusy] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
   const proto = prototypeUrl(p)
   const overdue = tone === 'overdue'
@@ -112,28 +114,38 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
 
   async function copyApproach() {
     if (!p.approach_message) return
-    await navigator.clipboard.writeText(p.approach_message)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1800)
+    try {
+      await navigator.clipboard.writeText(p.approach_message)
+      setCopied('ok')
+    } catch {
+      setCopied('erro')
+    }
+    setTimeout(() => setCopied(null), 1800)
+  }
+
+  async function run(save: Promise<boolean>) {
+    setBusy(true)
+    await save
+    setBusy(false)
   }
 
   /** Registra que houve contato hoje e ja deixa um retorno agendado. */
   function markContacted() {
     const antesDoContato = p.status === 'triagem' || p.status === 'prototipado'
-    void onUpdate(p.id, {
+    void run(onUpdate(p.id, {
       last_contacted_at: new Date().toISOString(),
       ...(antesDoContato
         ? { status: 'contatado' as const }
         : { next_action_at: addDaysISO(3) }),
-    }, 'Contato registrado')
+    }, 'Contato registrado'))
   }
 
   /** Empurra a próxima ação e soma uma tentativa, sem sair do card. */
   function cobrarDeNovo() {
-    void onUpdate(p.id, {
+    void run(onUpdate(p.id, {
       next_action_at: addBusinessDaysISO(3),
       contact_attempts: p.contact_attempts + 1,
-    }, 'Nova cobrança registrada')
+    }, 'Nova cobrança registrada'))
   }
 
   const podeCobrarDeNovo =
@@ -158,7 +170,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
         <div className="min-w-0">
           <button
             onClick={() => onOpen(p)}
-            className="text-left font-display text-[15px] font-semibold leading-snug tracking-tight hover:underline"
+            className="text-left break-words font-semibold text-name tracking-tight hover:underline"
           >
             {p.name}
           </button>
@@ -175,7 +187,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
             {p.next_action_at && (
               <>
                 {' · '}
-                <span className={overdue ? 'font-semibold text-seal' : ''}>
+                <span className={overdue ? 'font-semibold text-seal-ink' : ''}>
                   {relativeDay(p.next_action_at)}
                 </span>
               </>
@@ -184,7 +196,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span
-            className={`rounded-full px-2 py-0.5 text-[11px] uppercase tracking-wider ${STATUS_TONE[p.status]}`}
+            className={`rounded-full px-2 py-0.5 text-meta uppercase tracking-wider ${STATUS_TONE[p.status]}`}
           >
             {STATUS_LABEL[p.status]}
           </span>
@@ -193,7 +205,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
       </div>
 
       {p.problem && (
-        <p className="mt-2.5 line-clamp-2 text-[13px] leading-relaxed text-muted">{p.problem}</p>
+        <p className="mt-2.5 line-clamp-2 text-body leading-relaxed text-muted">{p.problem}</p>
       )}
 
       <div className="mt-3">
@@ -203,20 +215,21 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
       <div className="mt-auto space-y-2.5 rule-top pt-3.5">
         {/* Uma acao principal, larga e com texto, decidida pelo status. */}
         {(p.status === 'triagem' || p.status === 'prototipado') && (
-          <button onClick={markContacted} className={PRIMARY}>
+          <button onClick={markContacted} disabled={busy} className={PRIMARY}>
             <ContactIcon size={14} />
             Marquei contato
           </button>
         )}
         {podeCobrarDeNovo && (
-          <button onClick={cobrarDeNovo} className={PRIMARY}>
+          <button onClick={cobrarDeNovo} disabled={busy} className={PRIMARY}>
             <RepeatIcon size={14} />
             Cobrei de novo
           </button>
         )}
         {p.status === 'novo' && proto && (
           <button
-            onClick={() => void onUpdate(p.id, { status: 'prototipado' }, 'Marcado como prototipado')}
+            onClick={() => void run(onUpdate(p.id, { status: 'prototipado' }, 'Marcado como prototipado'))}
+            disabled={busy}
             className={PRIMARY}
           >
             Marcar prototipado
@@ -230,8 +243,8 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
           </div>
           {p.approach_message && (
             <button onClick={copyApproach} aria-label="Copiar mensagem de abordagem" className={SECONDARY}>
-              {copied ? <CheckIcon size={14} /> : <ClipboardCopyIcon size={14} />}
-              {copied ? 'Copiado' : (
+              {copied === 'ok' ? <CheckIcon size={14} /> : <ClipboardCopyIcon size={14} />}
+              {copied === 'ok' ? 'Copiado' : copied === 'erro' ? 'Não copiou' : (
                 <>
                   Copiar<span className="hidden @sm:inline"> mensagem</span>
                 </>
@@ -239,7 +252,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
             </button>
           )}
           {canDiscard(p) && (
-            <details className="relative">
+            <details data-menu className="relative">
               <summary
                 aria-label="Mais ações"
                 className="hit grid h-9 w-9 cursor-pointer list-none place-items-center rounded-sm text-lg leading-none text-muted hover:bg-paper [&::-webkit-details-marker]:hidden"
@@ -249,7 +262,7 @@ export function ProspectCard({ prospect: p, onUpdate, onOpen, tone = 'normal' }:
               <div className="absolute bottom-full right-0 z-10 mb-1 w-36 rounded-sm border border-rule bg-card p-1 shadow-lg">
                 <button
                   onClick={() => setDiscardOpen(true)}
-                  className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2.5 text-[13px] text-seal hover:bg-seal/10"
+                  className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2.5 text-body text-seal-ink hover:bg-seal/10"
                 >
                   <ArchiveIcon size={14} />
                   Descartar

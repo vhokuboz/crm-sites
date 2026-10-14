@@ -25,7 +25,7 @@ export function Clientes({ prospects, onUpdate, onOpen }: Props) {
 
   if (groups.length === 0) {
     return (
-      <p className="rounded-sm border border-dashed border-rule px-4 py-10 text-center text-sm text-muted">
+      <p className="rounded-sm border border-dashed border-rule px-4 py-10 text-center text-body text-muted">
         Nenhum cliente ainda. Quem chega em Finalizado aparece aqui.
       </p>
     )
@@ -48,7 +48,7 @@ export function Clientes({ prospects, onUpdate, onOpen }: Props) {
         const title = (
           <>
             <h2 className="font-display text-base font-semibold tracking-tight">{GROUP_TITLE[key]}</h2>
-            <span className={`text-xs ${key === 'suspender' ? 'text-seal' : 'text-muted'}`}>
+            <span className={`text-xs ${key === 'suspender' ? 'text-seal-ink' : 'text-muted'}`}>
               {items.length}
             </span>
           </>

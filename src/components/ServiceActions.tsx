@@ -12,14 +12,21 @@ type Props = {
   onModalChange?: (open: boolean) => void
 }
 
-const BTN = 'hit rounded-sm border border-rule px-3 py-2 text-[13px] hover:bg-card disabled:opacity-40'
-const BTN_DANGER = 'hit rounded-sm border border-seal/40 px-3 py-2 text-[13px] text-seal hover:bg-seal/10'
+const BTN = 'hit rounded-sm border border-rule px-3 py-2 text-body hover:bg-card disabled:opacity-40'
+const BTN_DANGER = 'hit rounded-sm border border-seal/40 px-3 py-2 text-body text-seal-ink hover:bg-seal/10'
 
 /** Botões do ciclo do serviço, conforme o estado derivado do cliente. */
 export function ServiceActions({ prospect: p, onUpdate, onModalChange }: Props) {
   const state = serviceState(p)
   const [fee, setFee] = useState(p.monthly_fee?.toString() ?? '')
   const [modal, setModal] = useState<'suspender' | 'encerrar' | null>(null)
+  // Segura cliques repetidos enquanto a gravacao nao volta.
+  const [busy, setBusy] = useState(false)
+  async function run(save: Promise<boolean>) {
+    setBusy(true)
+    await save
+    setBusy(false)
+  }
 
   useEffect(() => {
     onModalChange?.(modal !== null)
@@ -31,14 +38,15 @@ export function ServiceActions({ prospect: p, onUpdate, onModalChange }: Props) 
 
   function handleContinue(e: FormEvent) {
     e.preventDefault()
-    if (feeValue > 0) void onUpdate(p.id, continuePatch(p, feeValue), 'Cliente segue no plano')
+    if (feeValue > 0) void run(onUpdate(p.id, continuePatch(p, feeValue), 'Cliente segue no plano'))
   }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       {state === 'suspenso' ? (
         <>
-          <button type="button" className={BTN} onClick={() => void onUpdate(p.id, { suspended_at: null }, 'Site reativado')}>
+          <button type="button" className={BTN} disabled={busy}
+            onClick={() => void run(onUpdate(p.id, { suspended_at: null }, 'Site reativado'))}>
             Reativar
           </button>
           <p className="w-full text-xs text-muted">
@@ -59,14 +67,15 @@ export function ServiceActions({ prospect: p, onUpdate, onModalChange }: Props) 
                 onChange={(e) => setFee(e.target.value)}
                 placeholder="Mensalidade (R$)"
                 aria-label="Mensalidade (R$)"
-                className="w-40 rounded-sm border border-rule bg-card px-2 py-2 text-sm"
+                className="w-40 rounded-sm border border-rule bg-card px-2 py-2 text-body"
               />
-              <button type="submit" disabled={!(feeValue > 0)} className={BTN}>
+              <button type="submit" disabled={!(feeValue > 0) || busy} className={BTN}>
                 Vai continuar
               </button>
             </form>
           ) : (
-            <button type="button" className={BTN} onClick={() => void onUpdate(p.id, pixReceivedPatch(p), 'Pix registrado')}>
+            <button type="button" className={BTN} disabled={busy}
+              onClick={() => void run(onUpdate(p.id, pixReceivedPatch(p), 'Pix registrado'))}>
               Pix recebido
             </button>
           )}
@@ -74,7 +83,8 @@ export function ServiceActions({ prospect: p, onUpdate, onModalChange }: Props) 
             <button
               type="button"
               className={BTN}
-              onClick={() => void onUpdate(p.id, { last_reminded_at: todayISO() }, 'Lembrete registrado')}
+              disabled={busy}
+              onClick={() => void run(onUpdate(p.id, { last_reminded_at: todayISO() }, 'Lembrete registrado'))}
             >
               Lembrei o cliente
             </button>
@@ -89,7 +99,7 @@ export function ServiceActions({ prospect: p, onUpdate, onModalChange }: Props) 
       {/* Destrutivo e raro: afastado das ações de rotina e sem peso de botão. */}
       <button
         type="button"
-        className="hit ml-auto rounded-sm px-2 py-2 text-sm text-muted underline underline-offset-2 hover:text-seal"
+        className="hit ml-auto rounded-sm px-2 py-2 text-body text-muted underline underline-offset-2 hover:text-seal-ink"
         onClick={() => setModal('encerrar')}
       >
         Encerrar cliente

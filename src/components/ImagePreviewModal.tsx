@@ -52,7 +52,7 @@ export function ImagePreviewModal({ images, initialIndex = 0, title, onClose }: 
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="rounded-sm border border-paper/30 px-2.5 py-1 text-sm text-paper hover:bg-paper/10"
+            className="rounded-sm border border-paper/30 px-2.5 py-1 text-body text-paper hover:bg-paper/10"
           >
             Fechar
           </button>

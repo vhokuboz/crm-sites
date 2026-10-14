@@ -56,13 +56,13 @@ export function DiscardModal({ prospect, onConfirm, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 text-sm hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 text-body hover:bg-card"
           >
             Fechar
           </button>
         </div>
 
-        <p className="mt-3 text-sm leading-relaxed text-muted">
+        <p className="mt-3 text-body leading-relaxed text-muted">
           Move para "Descartado" e apaga a próxima ação agendada
           {prospect.landing_page_url ? ', além de remover a hospedagem do preview publicado' : ''}.
         </p>
@@ -75,12 +75,12 @@ export function DiscardModal({ prospect, onConfirm, onClose }: Props) {
               onChange={(e) => setNote(e.target.value)}
               rows={3}
               placeholder="Vai para as anotações, sem apagar o que já tinha"
-              className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 text-sm"
+              className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 text-body"
             />
           </label>
 
           {needsConfirm && (
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-body">
               <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
               Tenho certeza que quero descartar
             </label>
@@ -89,7 +89,7 @@ export function DiscardModal({ prospect, onConfirm, onClose }: Props) {
           <button
             type="submit"
             disabled={!confirmed || busy}
-            className="w-full rounded-sm bg-seal px-4 py-2.5 font-display text-sm font-semibold text-card transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="w-full rounded-sm bg-seal px-4 py-2.5 font-display text-body font-semibold text-card transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             {busy ? 'Descartando…' : 'Descartar'}
           </button>

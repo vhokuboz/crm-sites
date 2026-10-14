@@ -26,7 +26,8 @@ export function useProspects() {
       .order('name', { ascending: true })
 
     if (error) {
-      setState((s) => ({ ...s, prospects: [], loading: false, error: error.message }))
+      // Mantem o que ja estava na tela: falha de rede nao pode virar "base vazia".
+      setState((s) => ({ ...s, loading: false, error: error.message }))
       return
     }
     setState((s) => ({ ...s, prospects: data ?? [], loading: false, error: null }))

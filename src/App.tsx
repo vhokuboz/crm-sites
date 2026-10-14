@@ -1,16 +1,20 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { useProspects } from './lib/useProspects'
 import type { Prospect } from './lib/database.types'
 import { Login } from './components/Login'
 import { Hoje } from './components/Hoje'
-import { Funil } from './components/Funil'
-import { Base } from './components/Base'
-import { Clientes } from './components/Clientes'
-import { Drawer } from './components/Drawer'
-import { AddProspectModal } from './components/AddProspectModal'
+// So a Hoje e o login vao no bundle inicial; o resto carrega ao abrir.
+const Funil = lazy(() => import('./components/Funil').then((m) => ({ default: m.Funil })))
+const Base = lazy(() => import('./components/Base').then((m) => ({ default: m.Base })))
+const Clientes = lazy(() => import('./components/Clientes').then((m) => ({ default: m.Clientes })))
+const Drawer = lazy(() => import('./components/Drawer').then((m) => ({ default: m.Drawer })))
+const AddProspectModal = lazy(() =>
+  import('./components/AddProspectModal').then((m) => ({ default: m.AddProspectModal })),
+)
 import { Toast } from './components/Toast'
+import { useMenus } from './lib/useMenus'
 
 const TABS = ['Hoje', 'Funil', 'Clientes', 'Base'] as const
 type Tab = (typeof TABS)[number]
@@ -45,6 +49,7 @@ function Crm({ email }: { email: string }) {
   const [tab, setTab] = useState<Tab>('Hoje')
   const [open, setOpen] = useState<Prospect | null>(null)
   const [adding, setAdding] = useState(false)
+  useMenus()
 
   // Ficha abre direto no prospect recém-criado -- segmento e problema ainda
   // dependem de revisão manual, então não faz sentido deixar o usuário caçá-lo.
@@ -61,7 +66,13 @@ function Crm({ email }: { email: string }) {
     <div className="min-h-dvh">
       <header className="on-ink bg-ink text-cream">
         <div className="mx-auto flex max-w-[88rem] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
-          <img src="/okai-wordmark.webp" alt="Okai · web & digital" className="h-10 w-auto" />
+          <img
+            src="/okai-wordmark-sm.webp"
+            alt="Okai · web & digital"
+            width={320}
+            height={89}
+            className="h-10 w-auto"
+          />
 
           <nav className="order-last flex w-full gap-1 sm:order-none sm:w-auto" aria-label="Seções">
             {TABS.map((t) => (
@@ -97,13 +108,13 @@ function Crm({ email }: { email: string }) {
       </header>
 
       {error && (
-        <div role="alert" className="border-b border-seal/30 bg-seal/8">
+        <div role="alert" className="border-b border-seal/30 bg-seal-tint">
           <div className="mx-auto flex max-w-[88rem] items-center gap-3 px-4 py-2.5 sm:px-6">
-            <p className="flex-1 text-sm text-seal">{error}</p>
-            <button onClick={() => void reload()} className="hit text-sm font-medium text-seal underline">
+            <p className="flex-1 text-sm text-seal-ink">{error}</p>
+            <button onClick={() => void reload()} className="hit text-sm font-medium text-seal-ink underline">
               tentar de novo
             </button>
-            <button onClick={dismissError} className="hit text-sm text-seal underline">
+            <button onClick={dismissError} className="hit text-sm text-seal-ink underline">
               dispensar
             </button>
           </div>
@@ -111,8 +122,20 @@ function Crm({ email }: { email: string }) {
       )}
 
       <main className="mx-auto max-w-[88rem] px-4 py-6 sm:px-6 sm:py-8">
+        <h1 className="sr-only">{tab}</h1>
+        <Suspense fallback={<p role="status" className="eyebrow">Carregando</p>}>
         {loading ? (
           <p role="status" className="eyebrow">Carregando prospects</p>
+        ) : error && prospects.length === 0 ? (
+          <div className="rounded-sm border border-dashed border-seal/40 px-4 py-10 text-center">
+            <p className="text-body text-seal-ink">Não foi possível carregar os prospects.</p>
+            <button
+              onClick={() => void reload()}
+              className="hit mt-3 rounded-sm bg-ink px-4 py-2 text-body font-medium text-paper hover:opacity-90"
+            >
+              Tentar de novo
+            </button>
+          </div>
         ) : tab === 'Hoje' ? (
           <Hoje prospects={prospects} onUpdate={update} onOpen={setOpen} />
         ) : tab === 'Funil' ? (
@@ -122,13 +145,16 @@ function Crm({ email }: { email: string }) {
         ) : (
           <Base onOpen={setOpen} />
         )}
+        </Suspense>
       </main>
 
-      {selected && (
-        <Drawer prospect={selected} onUpdate={update} onReload={reload} onClose={() => setOpen(null)} />
-      )}
+      <Suspense fallback={null}>
+        {selected && (
+          <Drawer prospect={selected} onUpdate={update} onReload={reload} onClose={() => setOpen(null)} />
+        )}
 
-      {adding && <AddProspectModal onCreated={handleCreated} onClose={() => setAdding(false)} />}
+        {adding && <AddProspectModal onCreated={handleCreated} onClose={() => setAdding(false)} />}
+      </Suspense>
 
       {toast && <Toast key={toast.id} message={toast.message} onUndo={toast.undo} onDismiss={dismissToast} />}
     </div>

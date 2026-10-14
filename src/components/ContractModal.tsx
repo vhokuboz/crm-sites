@@ -80,7 +80,7 @@ export function ContractModal({ prospect, onSubmit, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 text-sm hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 text-body hover:bg-card"
           >
             Fechar
           </button>
@@ -107,21 +107,21 @@ export function ContractModal({ prospect, onSubmit, onClose }: Props) {
                   type="text"
                   value={form[key] ?? ''}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                  className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 text-sm"
+                  className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 text-body"
                 />
               </label>
             )
           })}
 
           {fields.length > 0 && (
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-body">
               <input type="checkbox" checked={save} onChange={(e) => setSave(e.target.checked)} />
               Salvar esses dados na ficha do cliente
             </label>
           )}
 
           {error && (
-            <p role="alert" className="border-l-2 border-seal pl-3 text-sm text-seal">
+            <p role="alert" className="border-l-2 border-seal pl-3 text-body text-seal-ink">
               {error}
             </p>
           )}
@@ -129,7 +129,7 @@ export function ContractModal({ prospect, onSubmit, onClose }: Props) {
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-sm bg-ink px-4 py-2.5 font-display text-sm font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-sm bg-ink px-4 py-2.5 font-display text-body font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {busy ? 'Gerando…' : 'Gerar contrato'}
           </button>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { OnUpdate } from '../lib/useProspects'
 import type { Prospect, ProspectStatus, ProspectUpdate } from '../lib/database.types'
 import {
@@ -176,9 +176,16 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
   // cima, o Escape deles tem que fechar só o modal -- não borbulhar pra cá e
   // fechar a ficha inteira no meio de uma geração de contrato, uma navegação
   // de preview ou uma confirmação de descarte.
+  const dirtyRef = useRef(false)
+  function confirmClose() {
+    if (!dirtyRef.current || window.confirm('Há alterações não salvas. Fechar mesmo assim?')) onClose()
+  }
+  const confirmCloseRef = useRef(confirmClose)
+  confirmCloseRef.current = confirmClose
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && previewIndex === null && !contractModalOpen && !discardOpen && !serviceModalOpen) onClose()
+      if (e.key === 'Escape' && previewIndex === null && !contractModalOpen && !discardOpen && !serviceModalOpen) confirmCloseRef.current()
     }
     document.addEventListener('keydown', onKey)
     panel.current?.focus()
@@ -198,6 +205,22 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
     }
   }, [])
 
+  /** Setas, Home e End movem entre abas (padrao ARIA de tabs). */
+  function moveTab(e: ReactKeyboardEvent, id: DrawerTab) {
+    const ids = DRAWER_TABS.map(([i]) => i)
+    const at = ids.indexOf(id)
+    const next =
+      e.key === 'ArrowRight' ? ids[(at + 1) % ids.length]
+      : e.key === 'ArrowLeft' ? ids[(at - 1 + ids.length) % ids.length]
+      : e.key === 'Home' ? ids[0]
+      : e.key === 'End' ? ids[ids.length - 1]
+      : null
+    if (!next) return
+    e.preventDefault()
+    setTab(next)
+    document.getElementById(`tabbtn-${next}`)?.focus()
+  }
+
   const dirty =
     name !== p.name ||
     segment !== p.segment ||
@@ -216,6 +239,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
     finalPaidAmount !== (p.final_paid_amount?.toString() ?? '') ||
     socialDrafts.some((d) => d.value.trim()) ||
     Object.keys(editingSocial).length > 0
+  dirtyRef.current = dirty
 
   // Campos de rede social ainda vazios no prospect e não escolhidos em outra
   // linha de rascunho -- são as opções que sobram pro select de cada linha.
@@ -402,7 +426,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex justify-end">
       <div
         className="absolute inset-0 bg-ink/25"
-        onClick={onClose}
+        onClick={confirmClose}
         aria-hidden
       />
 
@@ -425,13 +449,13 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                       value={segment}
                       onChange={(e) => setSegment(e.target.value)}
                       placeholder="Segmento"
-                      className="w-1/2 min-w-0 rounded-sm border border-rule bg-card px-2 py-1.5 text-sm"
+                      className="w-1/2 min-w-0 rounded-sm border border-rule bg-card px-2 py-1.5 text-body"
                     />
                     <input
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="Cidade"
-                      className="w-1/2 min-w-0 rounded-sm border border-rule bg-card px-2 py-1.5 text-sm"
+                      className="w-1/2 min-w-0 rounded-sm border border-rule bg-card px-2 py-1.5 text-body"
                     />
                   </div>
                   <input
@@ -444,11 +468,11 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               ) : (
                 <>
                   <p className="eyebrow">{p.segment} · {p.city}</p>
-                  <h2 className="mt-1 font-display text-2xl font-semibold leading-tight tracking-tight">
+                  <h2 className="mt-1 break-words font-display text-2xl font-semibold leading-tight tracking-tight">
                     {p.name}
                     {lastActivity && (
                       <span
-                        className={`ml-1.5 font-mono text-sm font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
+                        className={`ml-1.5 font-mono text-body font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
                         title={`Última atividade social: ${lastActivity}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
                       >
                         · {lastActivity}
@@ -474,14 +498,14 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                   onClick={() => setDiscardOpen(true)}
                   title="Descartar"
                   aria-label="Descartar"
-                  className="hit grid h-9 w-9 shrink-0 place-items-center rounded-sm border border-seal/40 text-seal hover:bg-seal/10"
+                  className="hit grid h-9 w-9 shrink-0 place-items-center rounded-sm border border-seal/40 text-seal-ink hover:bg-seal/10"
                 >
                   <ArchiveIcon size={13} />
                 </button>
               )}
               <button
-                onClick={onClose}
-                className="hit h-9 shrink-0 rounded-sm border border-rule px-3 text-sm hover:bg-card"
+                onClick={confirmClose}
+                className="hit h-9 shrink-0 rounded-sm border border-rule px-3 text-body hover:bg-card"
               >
                 Fechar
               </button>
@@ -494,7 +518,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               <button
                 onClick={saveText}
                 disabled={!dirty}
-                className="hit rounded-sm bg-ink px-4 py-2 text-sm font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
+                className="hit rounded-sm bg-ink px-4 py-2 text-body font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
               >
                 Salvar
               </button>
@@ -505,12 +529,15 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
             {DRAWER_TABS.map(([id, label]) => (
               <button
                 key={id}
+                id={`tabbtn-${id}`}
                 type="button"
                 role="tab"
                 aria-selected={tab === id}
                 aria-controls={`tab-${id}`}
+                tabIndex={tab === id ? 0 : -1}
                 onClick={() => setTab(id)}
-                className={`hit flex-1 rounded-sm px-3 py-2 text-sm font-medium transition-colors sm:flex-none ${
+                onKeyDown={(e) => moveTab(e, id)}
+                className={`hit flex-1 rounded-sm px-3 py-2 text-body font-medium transition-colors sm:flex-none ${
                   tab === id ? 'bg-ink text-paper' : 'text-muted hover:bg-card'
                 }`}
               >
@@ -521,9 +548,9 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
         </header>
 
         <div className="space-y-7 px-4 py-6 sm:px-6">
-          <div role="tabpanel" id="tab-resumo" hidden={tab !== 'resumo'} className="space-y-7">
+          <div role="tabpanel" id="tab-resumo" tabIndex={0} aria-labelledby="tabbtn-resumo" hidden={tab !== 'resumo'} className="space-y-7">
           <section>
-            <h3 className="eyebrow">Lacuna digital</h3>
+            <h3 className="section-title">Lacuna digital</h3>
             <div className="mt-3 rounded-sm border border-rule bg-card p-4">
               <GapMeter prospect={p} />
             </div>
@@ -534,7 +561,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as ProspectStatus)}
-                className="w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm"
+                className="w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-body"
               >
                 {ALL_STATUS.map((s) => (
                   <option key={s} value={s}>
@@ -551,7 +578,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
 
           {(p.status === 'contatado' || p.status === 'aguardando_pendencias') && (
             <section>
-              <h3 className="eyebrow">Cobrei de novo</h3>
+              <h3 className="section-title">Cobrei de novo</h3>
               <button
                 type="button"
                 onClick={() => {
@@ -564,7 +591,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                     void onUpdate(p.id, { next_action_at: addDaysISO(2) })
                   }
                 }}
-                className="rounded-sm border border-rule px-3 py-1.5 text-sm hover:bg-card"
+                className="rounded-sm border border-rule px-3 py-1.5 text-body hover:bg-card"
               >
                 Cobrei de novo
               </button>
@@ -579,7 +606,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
           {service && (
             <section className="space-y-2.5">
               <div className="flex items-center gap-2">
-                <h3 className="eyebrow">Serviço</h3>
+                <h3 className="section-title">Serviço</h3>
                 <span
                   className={`rounded-sm px-2 py-0.5 font-mono text-xs uppercase tracking-wider ${SERVICE_TONE[service]}`}
                 >
@@ -597,15 +624,15 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
 
           {p.problem && (
             <section>
-              <h3 className="eyebrow">O problema dele</h3>
-              <p className="mt-2 text-sm leading-relaxed">{p.problem}</p>
+              <h3 className="section-title">O problema dele</h3>
+              <p className="mt-2 text-body leading-relaxed">{p.problem}</p>
             </section>
           )}
 
           </div>
-          <div role="tabpanel" id="tab-negocio" hidden={tab !== 'negocio'} className="space-y-7">
+          <div role="tabpanel" id="tab-negocio" tabIndex={0} aria-labelledby="tabbtn-negocio" hidden={tab !== 'negocio'} className="space-y-7">
           <section className="space-y-3">
-            <h3 className="eyebrow">Negócio</h3>
+            <h3 className="section-title">Negócio</h3>
             <div className="grid grid-cols-2 gap-4">
               <label className="block">
                 <span className="text-xs text-muted">Valor combinado (R$)</span>
@@ -616,7 +643,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 <CurrencyInput value={monthlyFee} onChange={setMonthlyFee} placeholder="Sem hospedagem com a gente" />
               </label>
             </div>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-body">
               <input
                 type="checkbox"
                 checked={docsReceived}
@@ -638,7 +665,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
 
           {CONTRACT_ELIGIBLE_STATUS.has(p.status) && (
             <section className="space-y-2">
-              <h3 className="eyebrow">Contrato</h3>
+              <h3 className="section-title">Contrato</h3>
               <div className="flex flex-wrap items-center gap-3">
                 {p.contract_generated_at ? (
                   <>
@@ -646,7 +673,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                       type="button"
                       onClick={handleDownloadContract}
                       disabled={downloadingContract}
-                      className="rounded-sm border border-rule px-3 py-1.5 text-sm hover:bg-card disabled:opacity-40"
+                      className="rounded-sm border border-rule px-3 py-1.5 text-body hover:bg-card disabled:opacity-40"
                     >
                       {downloadingContract ? 'Abrindo…' : 'Baixar contrato'}
                     </button>
@@ -656,7 +683,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                         setContractError(null)
                         setContractModalOpen(true)
                       }}
-                      className="rounded-sm border border-rule px-3 py-1.5 text-sm hover:bg-card"
+                      className="rounded-sm border border-rule px-3 py-1.5 text-body hover:bg-card"
                     >
                       Refazer contrato
                     </button>
@@ -668,7 +695,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                       setContractError(null)
                       setContractModalOpen(true)
                     }}
-                    className="rounded-sm border border-rule px-3 py-1.5 text-sm hover:bg-card"
+                    className="rounded-sm border border-rule px-3 py-1.5 text-body hover:bg-card"
                   >
                     Gerar contrato
                   </button>
@@ -680,7 +707,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 </p>
               )}
               {contractError && (
-                <p role="alert" className="border-l-2 border-seal pl-3 text-sm text-seal">
+                <p role="alert" className="border-l-2 border-seal pl-3 text-body text-seal-ink">
                   {contractError}
                 </p>
               )}
@@ -688,9 +715,9 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
           )}
 
           </div>
-          <div role="tabpanel" id="tab-contato" hidden={tab !== 'contato'} className="space-y-7">
+          <div role="tabpanel" id="tab-contato" tabIndex={0} aria-labelledby="tabbtn-contato" hidden={tab !== 'contato'} className="space-y-7">
           <section>
-            <h3 className="eyebrow">Contato</h3>
+            <h3 className="section-title">Contato</h3>
             <dl className="mt-2 space-y-1.5 font-mono text-xs">
               {phones.length > 0 ? (
                 phones.map((ph) => (
@@ -744,7 +771,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   placeholder="(11) 99999-9999"
-                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm placeholder:text-muted/70"
+                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-body placeholder:text-muted"
                 />
               </label>
             )}
@@ -754,7 +781,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 href={wa}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="mt-3 inline-block rounded-sm bg-deep px-3 py-2 text-sm font-medium text-card hover:opacity-90"
+                className="mt-3 inline-block rounded-sm bg-deep px-3 py-2 text-body font-medium text-card hover:opacity-90"
               >
                 Abrir WhatsApp com a abordagem
               </a>
@@ -762,7 +789,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
           </section>
 
           <section className="space-y-3">
-            <h3 className="eyebrow">Protótipo e e-mail</h3>
+            <h3 className="section-title">Protótipo e e-mail</h3>
             <label className="block">
               <span className="text-xs text-muted">URL do protótipo</span>
               <input
@@ -770,7 +797,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 value={landing}
                 onChange={(e) => setLanding(e.target.value)}
                 placeholder="https://cliente.pages.dev"
-                className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm placeholder:text-muted/70"
+                className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-body placeholder:text-muted"
               />
             </label>
             <label className="block">
@@ -780,7 +807,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="contato@cliente.com.br"
-                className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm placeholder:text-muted/70"
+                className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-body placeholder:text-muted"
               />
             </label>
             {proto && (
@@ -831,7 +858,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
           </section>
 
           <section className="space-y-3">
-            <h3 className="eyebrow">Redes sociais</h3>
+            <h3 className="section-title">Redes sociais</h3>
             <dl className="space-y-1.5 font-mono text-xs">
               {p.instagram && (
                 <SocialInfoRow
@@ -891,7 +918,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 <select
                   value={draft.field}
                   onChange={(e) => updateSocialDraftField(i, e.target.value as SocialFieldKey)}
-                  className="w-32 shrink-0 rounded-sm border border-rule bg-card px-2 py-1.5 text-sm"
+                  className="w-32 shrink-0 rounded-sm border border-rule bg-card px-2 py-1.5 text-body"
                 >
                   {optionsForSocialRow(i).map((f) => (
                     <option key={f.key} value={f.key}>
@@ -903,13 +930,13 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                   value={draft.value}
                   onChange={(e) => updateSocialDraftValue(i, e.target.value)}
                   placeholder={SOCIAL_FIELDS.find((f) => f.key === draft.field)?.placeholder}
-                  className="min-w-0 flex-1 rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm placeholder:text-muted/70"
+                  className="min-w-0 flex-1 rounded-sm border border-rule bg-card px-2.5 py-1.5 text-body placeholder:text-muted"
                 />
                 <button
                   type="button"
                   onClick={() => removeSocialDraft(i)}
                   aria-label="Remover"
-                  className="shrink-0 rounded-sm border border-rule px-2 text-sm text-muted hover:bg-card"
+                  className="shrink-0 rounded-sm border border-rule px-2 text-body text-muted hover:bg-card"
                 >
                   ×
                 </button>
@@ -920,32 +947,32 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               type="button"
               onClick={addSocialDraft}
               disabled={remainingSocialFields.length === 0}
-              className="rounded-sm border border-rule px-3 py-1.5 text-sm hover:bg-card disabled:opacity-40"
+              className="rounded-sm border border-rule px-3 py-1.5 text-body hover:bg-card disabled:opacity-40"
             >
               + Adicionar informações
             </button>
           </section>
 
           </div>
-          <div role="tabpanel" id="tab-notas" hidden={tab !== 'notas'} className="space-y-7">
+          <div role="tabpanel" id="tab-notas" tabIndex={0} aria-labelledby="tabbtn-notas" hidden={tab !== 'notas'} className="space-y-7">
           <section>
-            <h3 className="eyebrow">Mensagem de abordagem</h3>
+            <h3 className="section-title">Mensagem de abordagem</h3>
             <textarea
               value={approach}
               onChange={(e) => setApproach(e.target.value)}
               rows={7}
-              className="mt-2 w-full resize-y rounded-sm border border-rule bg-card p-3 text-sm leading-relaxed"
+              className="mt-2 w-full resize-y rounded-sm border border-rule bg-card p-3 text-body leading-relaxed"
             />
           </section>
 
           <section>
-            <h3 className="eyebrow">Anotações</h3>
+            <h3 className="section-title">Anotações</h3>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={4}
               placeholder="O que foi conversado, objeções, valores."
-              className="mt-2 w-full resize-y rounded-sm border border-rule bg-card p-3 text-sm leading-relaxed placeholder:text-muted/70"
+              className="mt-2 w-full resize-y rounded-sm border border-rule bg-card p-3 text-body leading-relaxed placeholder:text-muted"
             />
           </section>
 
@@ -1004,13 +1031,13 @@ function SocialInfoRow({
             autoFocus
             value={editingValue}
             onChange={(e) => onChange(e.target.value)}
-            className="min-w-0 flex-1 rounded-sm border border-rule bg-card px-2.5 py-1 text-sm"
+            className="min-w-0 flex-1 rounded-sm border border-rule bg-card px-2.5 py-1 text-body"
           />
           <button
             type="button"
             onClick={onCancelEdit}
             aria-label="Cancelar edição"
-            className="shrink-0 rounded-sm border border-rule px-2 text-sm text-muted hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2 text-body text-muted hover:bg-card"
           >
             ×
           </button>
@@ -1082,7 +1109,7 @@ function DateField({ value, onChange }: { value: string; onChange: (v: string) =
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full min-w-0 rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm"
+        className="w-full min-w-0 rounded-sm border border-rule bg-card px-2.5 py-1.5 text-body"
       />
       {isIOS && !value && (
         <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center gap-1.5 text-xs text-muted">
@@ -1135,7 +1162,7 @@ function CurrencyInput({
       onChange={handleChange}
       onBlur={handleBlur}
       placeholder={placeholder}
-      className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm placeholder:text-muted/70"
+      className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-body placeholder:text-muted"
     />
   )
 }

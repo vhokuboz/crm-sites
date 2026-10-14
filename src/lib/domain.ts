@@ -202,8 +202,8 @@ export const RISK_LABEL: Record<InactivityRisk, string> = {
 
 /** Classe de cor pro mesmo tom usado em `STATUS_TONE` (seal = alerta, gold = atencao). */
 export const RISK_TONE: Record<InactivityRisk, string> = {
-  alto: 'text-seal',
-  medio: 'text-gold',
+  alto: 'text-seal-ink',
+  medio: 'text-gold-ink',
   baixo: 'text-muted',
 }
 
@@ -448,21 +448,21 @@ export const STATUS_LABEL: Record<ProspectStatus, string> = {
 export const STATUS_TONE: Record<ProspectStatus, string> = {
   novo: 'bg-rule/60 text-ink',
   triagem: 'bg-rule/80 text-ink',
-  prototipado: 'bg-deep/8 text-deep',
-  contatado: 'bg-deep/15 text-deep',
-  briefing: 'bg-deep/22 text-deep',
-  aguardando_pendencias: 'bg-deep/30 text-deep',
-  refinamento: 'bg-deep/40 text-deep',
-  em_analise: 'bg-deep/50 text-deep',
-  entrega: 'bg-gold/20 text-gold',
-  aguardando_pagamento: 'bg-gold/35 text-gold',
+  prototipado: 'bg-stage-1 text-ink',
+  contatado: 'bg-stage-2 text-ink',
+  briefing: 'bg-stage-3 text-ink',
+  aguardando_pendencias: 'bg-stage-4 text-ink',
+  refinamento: 'bg-stage-5 text-ink',
+  em_analise: 'bg-stage-6 text-ink',
+  entrega: 'bg-gold-tint text-gold-ink',
+  aguardando_pagamento: 'bg-gold-tint-2 text-gold-ink',
   finalizado: 'bg-deep text-card',
   // Mortos — ver comentário em STATUS_LABEL.
-  respondeu: 'bg-deep/30 text-deep',
-  negociando: 'bg-gold/25 text-gold',
+  respondeu: 'bg-stage-4 text-ink',
+  negociando: 'bg-gold-tint-2 text-gold-ink',
   fechado: 'bg-deep text-card',
-  perdido: 'bg-seal/12 text-seal',
-  descartado: 'bg-rule/40 text-muted',
+  perdido: 'bg-seal-tint text-seal-ink',
+  descartado: 'bg-faded text-muted',
 }
 
 export function isOpen(p: Prospect): boolean {

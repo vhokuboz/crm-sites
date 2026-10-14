@@ -89,13 +89,13 @@ export const SERVICE_LABEL: Record<ServiceState, string> = {
 }
 
 export const SERVICE_TONE: Record<ServiceState, string> = {
-  isento: 'bg-deep/15 text-deep',
-  renovacao: 'bg-gold/25 text-gold',
+  isento: 'bg-stage-2 text-ink',
+  renovacao: 'bg-gold-tint text-gold-ink',
   ativo: 'bg-deep text-card',
-  a_cobrar: 'bg-gold/35 text-gold',
-  suspender: 'bg-seal/12 text-seal',
-  suspenso: 'bg-seal/12 text-seal',
-  encerrado: 'bg-rule/40 text-muted',
+  a_cobrar: 'bg-gold-tint-2 text-gold-ink',
+  suspender: 'bg-seal-tint text-seal-ink',
+  suspenso: 'bg-seal-tint text-seal-ink',
+  encerrado: 'bg-faded text-muted',
 }
 
 const dias = (n: number) => (n === 1 ? '1 dia' : `${n} dias`)

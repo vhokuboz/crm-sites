@@ -21,6 +21,14 @@ export function Hoje({ prospects, onUpdate, onOpen }: Props) {
   const queue = buildQueue(prospects)
   const abertos = prospects.filter(isOpen)
 
+  if (prospects.length === 0) {
+    return (
+      <p className="rounded-sm border border-dashed border-rule px-4 py-10 text-center text-body text-muted">
+        Nenhum prospect na base ainda. Use “+ Novo prospect” para começar.
+      </p>
+    )
+  }
+
   return (
     <div className="space-y-8">
       <div className="space-y-8">
@@ -61,7 +69,7 @@ export function Hoje({ prospects, onUpdate, onOpen }: Props) {
 
       {/* Panorama é consulta, não fila: fechado por padrão para a fila ter o foco. */}
       <details className="rule-top pt-4">
-        <summary className="hit cursor-pointer text-sm font-medium text-muted hover:text-ink">
+        <summary className="hit cursor-pointer text-body font-medium text-muted hover:text-ink">
           Panorama · {abertos.length} em aberto
         </summary>
         <div className="mt-5 grid gap-8 md:grid-cols-3">
@@ -94,15 +102,15 @@ function Section({
       <div className="flex items-baseline gap-2">
         <h2 className="font-display text-base font-semibold tracking-tight">{title}</h2>
         <span
-          className={`text-xs tabular-nums ${urgent && count > 0 ? 'text-seal' : 'text-muted'}`}
+          className={`text-xs tabular-nums ${urgent && count > 0 ? 'text-seal-ink' : 'text-muted'}`}
         >
           {count}
         </span>
       </div>
-      {hint && <p className="mt-1 text-sm text-muted">{hint}</p>}
+      {hint && <p className="mt-1 text-body text-muted">{hint}</p>}
 
       {count === 0 ? (
-        <p className="mt-3 rounded-sm border border-dashed border-rule px-4 py-6 text-center text-sm text-muted">
+        <p className="mt-3 rounded-sm border border-dashed border-rule px-4 py-6 text-center text-body text-muted">
           {empty}
         </p>
       ) : (
@@ -116,7 +124,7 @@ function Funnel({ prospects }: { prospects: Prospect[] }) {
   const total = prospects.length || 1
   return (
     <section>
-      <h2 className="eyebrow">Funil</h2>
+      <h2 className="section-title">Funil</h2>
       <div className="mt-3 space-y-2">
         {FUNNEL.map((s) => {
           const n = prospects.filter((p) => p.status === s).length
@@ -157,7 +165,7 @@ function Segments({ prospects }: { prospects: Prospect[] }) {
 
   return (
     <section>
-      <h2 className="eyebrow">Segmentos</h2>
+      <h2 className="section-title">Segmentos</h2>
       <div className="mt-3 space-y-2">
         {rows.map((r) => {
           const open = r.total - r.lost - r.won
@@ -194,7 +202,7 @@ function TopGaps({ prospects, onOpen }: { prospects: Prospect[]; onOpen: (p: Pro
 
   return (
     <section>
-      <h2 className="eyebrow">Maiores lacunas</h2>
+      <h2 className="section-title">Maiores lacunas</h2>
       <p className="mt-1 text-xs leading-relaxed text-muted">
         Bem avaliados no Google, mal representados na internet.
       </p>
@@ -207,10 +215,10 @@ function TopGaps({ prospects, onOpen }: { prospects: Prospect[]; onOpen: (p: Pro
                 onClick={() => onOpen(p)}
                 className="flex w-full items-baseline gap-2 text-left hover:underline"
               >
-                <span className="text-xs tabular-nums font-semibold tabular-nums text-gold">
+                <span className="text-xs tabular-nums font-semibold tabular-nums text-gold-ink">
                   +{(gap.size as number).toFixed(1)}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-sm">{p.name}</span>
+                <span className="min-w-0 flex-1 truncate text-body">{p.name}</span>
               </button>
             </li>
           )

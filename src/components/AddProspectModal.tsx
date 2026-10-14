@@ -70,13 +70,13 @@ export function AddProspectModal({ onCreated, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 text-sm hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 text-body hover:bg-card"
           >
             Fechar
           </button>
         </div>
 
-        <p className="mt-2 text-sm leading-relaxed text-muted">
+        <p className="mt-2 text-body leading-relaxed text-muted">
           Informe pelo menos um dos links. Quando o Google Maps é informado, nome, endereço,
           nota, avaliações, telefone e site vêm dele automaticamente. Segmento e problema
           ficam para revisar na ficha depois.
@@ -91,7 +91,7 @@ export function AddProspectModal({ onCreated, onClose }: Props) {
               value={mapsUrl}
               onChange={(e) => setMapsUrl(e.target.value)}
               placeholder="https://maps.app.goo.gl/… ou o link da barra de endereço (opcional)"
-              className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 text-sm placeholder:text-muted/70"
+              className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 text-body placeholder:text-muted"
             />
           </label>
 
@@ -102,12 +102,12 @@ export function AddProspectModal({ onCreated, onClose }: Props) {
               value={igUrl}
               onChange={(e) => setIgUrl(e.target.value)}
               placeholder="https://instagram.com/perfil (opcional)"
-              className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 text-sm placeholder:text-muted/70"
+              className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 text-body placeholder:text-muted"
             />
           </label>
 
           {error && (
-            <p role="alert" className="border-l-2 border-seal pl-3 text-sm text-seal">
+            <p role="alert" className="border-l-2 border-seal pl-3 text-body text-seal-ink">
               {error}
             </p>
           )}
@@ -115,7 +115,7 @@ export function AddProspectModal({ onCreated, onClose }: Props) {
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-sm bg-ink px-4 py-2.5 font-display text-sm font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-sm bg-ink px-4 py-2.5 font-display text-body font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {busy ? 'Buscando no Maps…' : 'Adicionar prospect'}
           </button>

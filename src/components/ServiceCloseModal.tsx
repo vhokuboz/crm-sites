@@ -70,23 +70,23 @@ export function ServiceCloseModal({ prospect, kind, onConfirm, onClose }: Props)
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 text-sm hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 text-body hover:bg-card"
           >
             Fechar
           </button>
         </div>
 
-        <p className="mt-3 text-sm leading-relaxed text-muted">{copy.body}</p>
+        <p className="mt-3 text-body leading-relaxed text-muted">{copy.body}</p>
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-body">
             <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
             {copy.check}
           </label>
           <button
             type="submit"
             disabled={!confirmed || busy}
-            className="w-full rounded-sm bg-seal px-4 py-2.5 font-display text-sm font-semibold text-card transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="w-full rounded-sm bg-seal px-4 py-2.5 font-display text-body font-semibold text-card transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             {busy ? copy.busy : copy.action}
           </button>

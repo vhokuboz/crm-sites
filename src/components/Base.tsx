@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Prospect } from '../lib/database.types'
 import {
   ALL_STATUS,
@@ -40,7 +41,18 @@ function useLoadMoreSentinel(onView: () => void, enabled: boolean) {
   return ref
 }
 
-export function Base({ onOpen }: Props) {
+/** O react-query so e usado aqui: o provider mora junto, e sai do bundle inicial. */
+const queryClient = new QueryClient()
+
+export function Base(props: Props) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BaseList {...props} />
+    </QueryClientProvider>
+  )
+}
+
+function BaseList({ onOpen }: Props) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<string>('todos')
   const [segment, setSegment] = useState<string | null>(null)
@@ -64,7 +76,7 @@ export function Base({ onOpen }: Props) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar por nome, segmento, problema…"
-          className="min-w-60 flex-1 rounded-sm border border-rule bg-card px-3 py-2 text-sm"
+          className="min-w-60 flex-1 rounded-sm border border-rule bg-card px-3 py-2 text-body"
           aria-label="Buscar prospects"
         />
         <span className="text-xs tabular-nums text-muted">
@@ -101,7 +113,7 @@ export function Base({ onOpen }: Props) {
       {isLoading ? (
         <p className="eyebrow">Carregando</p>
       ) : rows.length === 0 ? (
-        <p className="rounded-sm border border-dashed border-rule bg-card px-4 py-8 text-center text-sm text-muted">
+        <p className="rounded-sm border border-dashed border-rule bg-card px-4 py-8 text-center text-body text-muted">
           Nada encontrado com esses filtros.
         </p>
       ) : (
@@ -132,7 +144,7 @@ export function Base({ onOpen }: Props) {
                       onClick={() => onOpen(p)}
                       className="cursor-pointer border-b border-rule/60 last:border-0 hover:bg-paper/60"
                     >
-                      <td className="px-3 py-2.5 text-sm font-medium">
+                      <td className="px-3 py-2.5 text-body font-medium">
                         {p.name}
                         {lastActivity && (
                           <span
@@ -156,7 +168,7 @@ export function Base({ onOpen }: Props) {
                       </td>
                       <td className="px-3 py-2.5 text-xs tabular-nums">
                         {gap.reputation !== null ? (
-                          <span className="text-gold">★ {gap.reputation.toFixed(1)}</span>
+                          <span className="text-gold-ink">★ {gap.reputation.toFixed(1)}</span>
                         ) : (
                           <span className="text-muted">—</span>
                         )}
@@ -166,7 +178,7 @@ export function Base({ onOpen }: Props) {
                       </td>
                       <td className="px-3 py-2.5 text-xs font-semibold tabular-nums">
                         {gap.size !== null ? (
-                          <span className={gap.size > 0 ? 'text-gold' : 'text-muted'}>
+                          <span className={gap.size > 0 ? 'text-gold-ink' : 'text-muted'}>
                             {gap.size > 0 ? '+' : ''}
                             {gap.size.toFixed(1)}
                           </span>
@@ -214,7 +226,7 @@ function Row({ prospect: p, onOpen }: { prospect: Prospect; onOpen: (p: Prospect
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-[14px] font-medium">
+          <p className="truncate text-body font-medium">
             {p.name}
             {lastActivity && (
               <span
@@ -277,7 +289,7 @@ function Pill({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-2.5 py-1 text-sm transition-colors ${
+      className={`rounded-full border px-2.5 py-1 text-body transition-colors ${
         active
           ? `border-transparent ${tone ?? 'bg-ink text-paper'}`
           : 'border-rule text-muted hover:bg-paper hover:text-ink'

@@ -45,8 +45,12 @@ export function QuickActions({ prospect: p, size = 'sm', bare = false, max }: Pr
 
   async function copyEmail() {
     if (!email) return
-    await navigator.clipboard.writeText(email)
-    setCopied(true)
+    try {
+      await navigator.clipboard.writeText(email)
+      setCopied(true)
+    } catch {
+      window.alert(`Não foi possível copiar. O e-mail é: ${email}`)
+    }
     setTimeout(() => setCopied(false), 1800)
   }
 
@@ -143,7 +147,7 @@ export function QuickActions({ prospect: p, size = 'sm', bare = false, max }: Pr
     <div className={`flex flex-wrap items-center ${bare ? 'justify-end gap-0.5' : 'gap-1'}`}>
       {shown}
       {rest.length > 0 && (
-        <details className="relative">
+        <details data-menu className="relative">
           <summary
             aria-label={`Mais ${rest.length} atalhos`}
             className={`hit grid ${box} cursor-pointer list-none place-items-center rounded-sm border border-rule text-xs text-muted hover:bg-paper [&::-webkit-details-marker]:hidden`}
@@ -187,7 +191,7 @@ function IconLink({
       }`
     : `hit grid ${box} place-items-center rounded-sm border transition-colors ${
         highlight
-          ? 'border-deep/40 bg-deep/10 text-deep hover:bg-deep hover:text-card'
+          ? 'border-deep/40 bg-stage-1 text-deep hover:bg-deep hover:text-card'
           : 'border-rule text-ink hover:bg-paper'
       }`
 
