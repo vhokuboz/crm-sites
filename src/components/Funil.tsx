@@ -1,13 +1,20 @@
 import { useState } from 'react'
-import type { Prospect, ProspectStatus, ProspectUpdate } from '../lib/database.types'
+import type { OnUpdate } from '../lib/useProspects'
+import type { Prospect, ProspectStatus } from '../lib/database.types'
 import { ALL_STATUS, CLOSED, FUNNEL, STATUS_LABEL, readGap, relativeDay } from '../lib/domain'
 import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { QuickActions } from './QuickActions'
 
 type Props = {
   prospects: Prospect[]
-  onUpdate: (id: string, patch: ProspectUpdate) => Promise<boolean>
+  onUpdate: OnUpdate
   onOpen: (p: Prospect) => void
+}
+
+/** Mudar de coluna por qualquer caminho (arrastar ou seletor) passa por aqui. */
+function moveTo(p: Prospect, status: ProspectStatus, onUpdate: OnUpdate) {
+  if (p.status === status) return Promise.resolve(true)
+  return onUpdate(p.id, { status }, `${p.name}: ${STATUS_LABEL[status]}`)
 }
 
 export function Funil({ prospects, onUpdate, onOpen }: Props) {
@@ -15,7 +22,8 @@ export function Funil({ prospects, onUpdate, onOpen }: Props) {
   const [over, setOver] = useState<ProspectStatus | null>(null)
 
   function drop(status: ProspectStatus) {
-    if (dragging) void onUpdate(dragging, { status })
+    const p = prospects.find((x) => x.id === dragging)
+    if (p) void moveTo(p, status, onUpdate)
     setDragging(null)
     setOver(null)
   }
@@ -24,67 +32,69 @@ export function Funil({ prospects, onUpdate, onOpen }: Props) {
 
   return (
     <div className="space-y-8">
-      <p className="text-[13px] text-muted">
-        Arraste um card para mudar o status, ou use o seletor no próprio card.
+      <p className="text-body text-muted">
+        Arraste um card para mudar o status, ou use “Mover para” no próprio card.
       </p>
 
-      <div className="flex gap-4 overflow-x-auto pb-2">
+      {/* No celular cada coluna ocupa quase a tela e encaixa ao rolar. */}
+      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:snap-none sm:gap-4">
         {FUNNEL.map((status) => {
           const items = prospects.filter((p) => p.status === status)
           return (
-            <div
+            <section
               key={status}
+              aria-label={`${STATUS_LABEL[status]}, ${items.length}`}
               onDragOver={(e) => {
                 e.preventDefault()
                 setOver(status)
               }}
               onDragLeave={() => setOver((s) => (s === status ? null : s))}
               onDrop={() => drop(status)}
-              className={`flex min-h-40 w-64 shrink-0 flex-col rounded-sm border p-2 transition-colors ${
-                over === status ? 'border-deep bg-deep/5' : 'border-rule bg-card/50'
+              className={`flex min-h-40 w-[82vw] max-w-72 shrink-0 snap-start flex-col rounded-sm border p-2 transition-colors sm:w-72 sm:max-w-none ${
+                over === status ? 'border-deep bg-stage-1' : 'border-rule bg-card/50'
               }`}
             >
               <div className="flex items-baseline justify-between px-1 pb-2">
-                <h2 className="font-mono text-[11px] uppercase tracking-wider text-muted">
-                  {STATUS_LABEL[status]}
-                </h2>
-                <span className="font-mono text-[11px] tabular-nums text-muted">
-                  {items.length}
-                </span>
+                <h2 className="section-title">{STATUS_LABEL[status]}</h2>
+                <span className="text-meta tabular-nums text-muted">{items.length}</span>
               </div>
 
-              <div className="space-y-1.5">
-                {items.map((p) => (
-                  <Card
-                    key={p.id}
-                    prospect={p}
-                    onOpen={onOpen}
-                    onUpdate={onUpdate}
-                    onDragStart={() => setDragging(p.id)}
-                    onDragEnd={() => setDragging(null)}
-                    dimmed={dragging === p.id}
-                  />
-                ))}
-              </div>
-            </div>
+              {items.length === 0 ? (
+                <p className="grid flex-1 place-items-center rounded-sm border border-dashed border-rule px-3 py-6 text-center text-meta text-muted">
+                  Nenhum card aqui. Solte um para mover.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {items.map((p) => (
+                    <Card
+                      key={p.id}
+                      prospect={p}
+                      onOpen={onOpen}
+                      onUpdate={onUpdate}
+                      onDragStart={() => setDragging(p.id)}
+                      onDragEnd={() => setDragging(null)}
+                      dimmed={dragging === p.id}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
           )
         })}
       </div>
 
       {encerrados.length > 0 && (
         <section>
-          <h2 className="eyebrow">Encerrados</h2>
-          <div className="mt-3 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
+          <h2 className="section-title">Encerrados</h2>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {encerrados.map((p) => (
               <button
                 key={p.id}
                 onClick={() => onOpen(p)}
-                className="rounded-sm border border-rule bg-card/40 px-3 py-2 text-left"
+                className="hit rounded-sm border border-rule bg-faded px-3 py-2.5 text-left"
               >
-                <p className="truncate text-[13px] text-muted line-through">{p.name}</p>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
-                  {STATUS_LABEL[p.status]}
-                </p>
+                <p className="truncate text-body text-ink">{p.name}</p>
+                <p className="text-meta text-muted">{STATUS_LABEL[p.status]}</p>
               </button>
             ))}
           </div>
@@ -104,67 +114,75 @@ function Card({
 }: {
   prospect: Prospect
   onOpen: (p: Prospect) => void
-  onUpdate: (id: string, patch: ProspectUpdate) => Promise<boolean>
+  onUpdate: OnUpdate
   onDragStart: () => void
   onDragEnd: () => void
   dimmed: boolean
 }) {
   const gap = readGap(p)
+  // Segura mudancas repetidas enquanto a gravacao nao volta.
+  const [busy, setBusy] = useState(false)
+
+  async function change(status: ProspectStatus) {
+    setBusy(true)
+    await moveTo(p, status, onUpdate)
+    setBusy(false)
+  }
 
   return (
     <article
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className={`cursor-grab rounded-sm border border-rule bg-card p-2.5 active:cursor-grabbing ${
+      className={`cursor-grab rounded-sm border border-rule bg-card p-3 active:cursor-grabbing ${
         dimmed ? 'opacity-40' : ''
       }`}
     >
       <button
         onClick={() => onOpen(p)}
-        className="w-full text-left font-display text-[13px] font-semibold leading-snug tracking-tight hover:underline"
+        className="w-full break-words text-left text-name font-semibold tracking-tight hover:underline"
       >
         {p.name}
       </button>
 
-      <div className="mt-1.5 flex items-center gap-1.5 font-mono text-[10px] text-muted">
+      <p className="mt-1 flex flex-wrap items-center gap-x-2 text-meta text-muted">
+        {p.segment && <span className="truncate">{p.segment}</span>}
+        {p.next_action_at && <span>{relativeDay(p.next_action_at)}</span>}
+      </p>
+
+      <p className="mt-1.5 flex items-center gap-2 text-meta text-muted">
         {gap.reputation !== null && (
-          <span className="text-gold">★ {gap.reputation.toFixed(1)}</span>
+          <span className="shrink-0 text-gold-ink">★ {gap.reputation.toFixed(1)}</span>
         )}
         <span className="truncate">{gap.presenceLabel}</span>
-      </div>
+      </p>
 
       <BusinessStatusBadge prospect={p} className="mt-1.5" />
 
       {p.status === 'refinamento' && p.revision_count > 0 && (
-        <p className="mt-1 font-mono text-[10px] text-gold">{p.revision_count + 1}ª rodada</p>
+        <p className="mt-1 text-meta text-gold-ink">{p.revision_count + 1}ª rodada</p>
       )}
 
-      {p.next_action_at && (
-        <p className="mt-1 font-mono text-[10px] text-muted">{relativeDay(p.next_action_at)}</p>
-      )}
+      {/* Arrastar não existe em touch nem por teclado: este seletor é o caminho de ambos. */}
+      <label className="mt-2.5 block">
+        <span className="text-meta text-muted">Mover para</span>
+        <select
+          value={p.status}
+          disabled={busy}
+          onChange={(e) => void change(e.target.value as ProspectStatus)}
+          aria-label={`Mover para, ${p.name}`}
+          className="mt-0.5 min-h-9 w-full rounded-sm border border-rule bg-paper px-2 text-body disabled:opacity-50"
+        >
+          {ALL_STATUS.map((s) => (
+            <option key={s} value={s}>
+              {STATUS_LABEL[s]}
+            </option>
+          ))}
+        </select>
+      </label>
 
-      {/* Arrastar não existe em touch: este seletor é o jeito de mudar de coluna no celular. */}
-      <select
-        value={p.status}
-        onChange={(e) => void onUpdate(p.id, { status: e.target.value as ProspectStatus })}
-        aria-label={`Mudar status de ${p.name}`}
-        className="mt-2 w-full rounded-sm border border-rule bg-paper px-1.5 py-1 font-mono text-[10px] text-muted"
-      >
-        {ALL_STATUS.map((s) => (
-          <option key={s} value={s}>
-            {STATUS_LABEL[s]}
-          </option>
-        ))}
-      </select>
-
-      <div className="mt-2 flex items-center justify-between gap-1.5">
-        {p.segment && (
-          <span className="truncate rounded-sm border border-rule px-1 py-0.5 font-mono text-[9px] text-muted">
-            {p.segment}
-          </span>
-        )}
-        <QuickActions prospect={p} bare />
+      <div className="mt-2.5">
+        <QuickActions prospect={p} max={3} />
       </div>
     </article>
   )
