@@ -12,8 +12,8 @@ type Props = {
   onModalChange?: (open: boolean) => void
 }
 
-const BTN = 'hit rounded-sm border border-rule px-3 py-2 text-sm hover:bg-card disabled:opacity-40'
-const BTN_DANGER = 'hit rounded-sm border border-seal/40 px-3 py-2 text-sm text-seal hover:bg-seal/10'
+const BTN = 'hit rounded-sm border border-rule px-3 py-2 text-[13px] hover:bg-card disabled:opacity-40'
+const BTN_DANGER = 'hit rounded-sm border border-seal/40 px-3 py-2 text-[13px] text-seal hover:bg-seal/10'
 
 /** Botões do ciclo do serviço, conforme o estado derivado do cliente. */
 export function ServiceActions({ prospect: p, onUpdate, onModalChange }: Props) {

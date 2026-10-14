@@ -33,7 +33,7 @@ export function Clientes({ prospects, onUpdate, onOpen }: Props) {
 
   return (
     <div className="space-y-8">
-      <p className="font-mono text-xs text-muted">
+      <p className="text-xs text-muted">
         {ativos} ativos · {isentos} isentos · {pagantes} pagantes · R$ {brl(mrr)}/mês
       </p>
 
@@ -47,8 +47,8 @@ export function Clientes({ prospects, onUpdate, onOpen }: Props) {
         )
         const title = (
           <>
-            <h2 className="font-display text-lg font-semibold tracking-tight">{GROUP_TITLE[key]}</h2>
-            <span className={`font-mono text-xs ${key === 'suspender' ? 'text-seal' : 'text-muted'}`}>
+            <h2 className="font-display text-base font-semibold tracking-tight">{GROUP_TITLE[key]}</h2>
+            <span className={`text-xs ${key === 'suspender' ? 'text-seal' : 'text-muted'}`}>
               {items.length}
             </span>
           </>

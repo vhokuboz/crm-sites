@@ -45,14 +45,14 @@ export function ImagePreviewModal({ images, initialIndex = 0, title, onClose }: 
         className="relative flex max-h-full w-full max-w-3xl flex-col"
       >
         <div className="flex items-center justify-between pb-2">
-          <p className="font-mono text-xs text-paper/80">
+          <p className="text-xs text-paper/80">
             {title}
             {hasMultiple && ` · ${index + 1} / ${images.length}`}
           </p>
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="rounded-sm border border-paper/30 px-2.5 py-1 font-mono text-xs text-paper hover:bg-paper/10"
+            className="rounded-sm border border-paper/30 px-2.5 py-1 text-sm text-paper hover:bg-paper/10"
           >
             Fechar
           </button>

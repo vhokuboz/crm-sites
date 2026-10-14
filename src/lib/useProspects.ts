@@ -4,7 +4,7 @@ import { closesHostedSite, statusTransitionPatch } from './domain'
 import { serviceStartPatch } from './service'
 import type { Prospect, ProspectUpdate } from './database.types'
 
-type Toast = { message: string; undo: () => void }
+type Toast = { id: number; message: string; undo: () => void }
 
 type State = {
   prospects: Prospect[]
@@ -96,7 +96,7 @@ export function useProspects() {
       prospects: s.prospects.map((p) => (p.id === id ? data : p)),
       toast:
         undoLabel && revert && !closesHostedSite(before!, patch)
-          ? { message: undoLabel, undo: () => void update(id, revert, 'Desfeito') }
+          ? { id: Date.now(), message: undoLabel, undo: () => void update(id, revert, 'Desfeito') }
           : s.toast,
     }))
 

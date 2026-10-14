@@ -16,7 +16,7 @@ export function Toast({ message, onUndo, onDismiss }: Props) {
   return (
     <div
       role="status"
-      className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm items-center gap-3 rounded-sm bg-ink px-4 py-3 text-sm text-cream shadow-lg sm:left-auto sm:right-6 sm:mx-0"
+      className="on-ink fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm items-center gap-3 rounded-sm bg-ink px-4 py-3 text-sm text-cream shadow-lg sm:left-auto sm:right-6 sm:mx-0"
     >
       <p className="min-w-0 flex-1">{message}</p>
       <button

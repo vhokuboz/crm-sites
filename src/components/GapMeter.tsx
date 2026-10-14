@@ -15,7 +15,7 @@ export function GapMeter({ prospect, compact = false }: { prospect: Prospect; co
   const pct = (v: number) => `${(v / 5) * 100}%`
 
   return (
-    <div className={compact ? 'space-y-1' : 'space-y-1.5'}>
+    <div className={compact ? 'space-y-2' : 'space-y-2.5'}>
       <Bar
         label="reputação"
         value={gap.reputation}
@@ -62,11 +62,12 @@ function Bar({
   pct: (v: number) => string
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-16 shrink-0 font-mono text-xs uppercase tracking-wider text-muted">
-        {label}
-      </span>
-      <div className="h-1.5 flex-1 rounded-full bg-rule/70">
+    <div>
+      <div className="flex items-baseline justify-between gap-3 text-xs text-muted">
+        <span className="uppercase tracking-wider">{label}</span>
+        <span className="truncate text-right">{note}</span>
+      </div>
+      <div className="mt-1 h-1.5 rounded-full bg-rule/70">
         {value !== null && (
           <div
             className={`h-full rounded-full ${color} transition-[width] duration-500`}
@@ -74,9 +75,6 @@ function Bar({
           />
         )}
       </div>
-      <span className="w-32 shrink-0 truncate text-right font-mono text-xs text-muted">
-        {note}
-      </span>
     </div>
   )
 }

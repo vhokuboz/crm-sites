@@ -17,8 +17,8 @@ export function ServicoFila({ prospects, onUpdate, onOpen }: Props) {
   return (
     <section>
       <div className="flex items-baseline gap-2">
-        <h2 className="font-display text-lg font-semibold tracking-tight">Serviço</h2>
-        <span className="font-mono text-xs text-seal">{queue.length}</span>
+        <h2 className="font-display text-base font-semibold tracking-tight">Serviço</h2>
+        <span className="text-xs text-seal">{queue.length}</span>
       </div>
       <p className="mt-1 text-sm text-muted">Suspensões pendentes, cobranças e renovações.</p>
       <div className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">

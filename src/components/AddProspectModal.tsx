@@ -70,7 +70,7 @@ export function AddProspectModal({ onCreated, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-xs hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 text-sm hover:bg-card"
           >
             Fechar
           </button>
@@ -91,7 +91,7 @@ export function AddProspectModal({ onCreated, onClose }: Props) {
               value={mapsUrl}
               onChange={(e) => setMapsUrl(e.target.value)}
               placeholder="https://maps.app.goo.gl/… ou o link da barra de endereço (opcional)"
-              className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 font-mono text-xs placeholder:text-muted/70"
+              className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 text-sm placeholder:text-muted/70"
             />
           </label>
 
@@ -102,7 +102,7 @@ export function AddProspectModal({ onCreated, onClose }: Props) {
               value={igUrl}
               onChange={(e) => setIgUrl(e.target.value)}
               placeholder="https://instagram.com/perfil (opcional)"
-              className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 font-mono text-xs placeholder:text-muted/70"
+              className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 text-sm placeholder:text-muted/70"
             />
           </label>
 

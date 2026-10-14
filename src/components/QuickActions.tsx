@@ -53,7 +53,7 @@ export function QuickActions({ prospect: p, size = 'sm', bare = false, max }: Pr
   if (!proto && !wa && !ig && !site && !fb && !bio && !email && !source && images.length === 0)
     return null
 
-  const box = bare ? 'h-5 w-5' : size === 'md' ? 'h-9 w-9' : 'h-9 w-9'
+  const box = bare ? 'h-5 w-5' : size === 'md' ? 'h-9 w-9' : 'h-8 w-8'
   const icon = bare ? 13 : size === 'md' ? 18 : 16
 
   const emailClass = bare
@@ -323,7 +323,7 @@ export function ArchiveIcon({ size }: IconProps) {
   )
 }
 
-function CheckIcon({ size }: IconProps) {
+export function CheckIcon({ size }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
       <path d="m5 12.5 4.5 4.5L19 7" />

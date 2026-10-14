@@ -24,7 +24,7 @@ export function Login() {
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-ink px-6 text-cream">
+    <main className="on-ink grid min-h-dvh place-items-center bg-ink px-6 text-cream">
       <div className="w-full max-w-sm">
         <h1>
           <img src="/okai-wordmark.webp" alt="Okai · web & digital" className="h-20 w-auto" />

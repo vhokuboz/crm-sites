@@ -99,11 +99,20 @@ function normalizeSocialValue(field: SocialFieldKey, value: string): string {
   }
 }
 
+const DRAWER_TABS = [
+  ['resumo', 'Resumo'],
+  ['negocio', 'Negócio'],
+  ['contato', 'Contato'],
+  ['notas', 'Notas'],
+] as const
+type DrawerTab = (typeof DRAWER_TABS)[number][0]
+
 export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
   const panel = useRef<HTMLDivElement>(null)
   const [name, setName] = useState(p.name)
   const [segment, setSegment] = useState(p.segment)
   const [city, setCity] = useState(p.city)
+  const [tab, setTab] = useState<DrawerTab>('resumo')
   const [editingHeader, setEditingHeader] = useState(false)
   const [notes, setNotes] = useState(p.notes ?? '')
   const [approach, setApproach] = useState(p.approach_message ?? '')
@@ -416,13 +425,13 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                       value={segment}
                       onChange={(e) => setSegment(e.target.value)}
                       placeholder="Segmento"
-                      className="w-1/2 min-w-0 rounded-sm border border-rule bg-card px-2 py-1 font-mono text-xs"
+                      className="w-1/2 min-w-0 rounded-sm border border-rule bg-card px-2 py-1.5 text-sm"
                     />
                     <input
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="Cidade"
-                      className="w-1/2 min-w-0 rounded-sm border border-rule bg-card px-2 py-1 font-mono text-xs"
+                      className="w-1/2 min-w-0 rounded-sm border border-rule bg-card px-2 py-1.5 text-sm"
                     />
                   </div>
                   <input
@@ -455,7 +464,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 type="button"
                 onClick={() => (editingHeader ? cancelEditingHeader() : setEditingHeader(true))}
                 aria-label={editingHeader ? 'Cancelar edição' : 'Editar nome, segmento e cidade'}
-                className="shrink-0 rounded-sm border border-rule px-2 py-1 text-muted hover:bg-card hover:text-ink"
+                className="hit grid h-9 w-9 shrink-0 place-items-center rounded-sm border border-rule text-muted hover:bg-card hover:text-ink"
               >
                 {editingHeader ? '×' : <PencilIcon size={13} />}
               </button>
@@ -465,14 +474,14 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                   onClick={() => setDiscardOpen(true)}
                   title="Descartar"
                   aria-label="Descartar"
-                  className="shrink-0 rounded-sm border border-seal/40 px-2 py-1 text-seal hover:bg-seal/10"
+                  className="hit grid h-9 w-9 shrink-0 place-items-center rounded-sm border border-seal/40 text-seal hover:bg-seal/10"
                 >
                   <ArchiveIcon size={13} />
                 </button>
               )}
               <button
                 onClick={onClose}
-                className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-xs hover:bg-card"
+                className="hit h-9 shrink-0 rounded-sm border border-rule px-3 text-sm hover:bg-card"
               >
                 Fechar
               </button>
@@ -485,16 +494,34 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               <button
                 onClick={saveText}
                 disabled={!dirty}
-                className="rounded-sm bg-ink px-3 py-1.5 font-display text-xs font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
+                className="hit rounded-sm bg-ink px-4 py-2 text-sm font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
               >
                 Salvar
               </button>
-              {saved && <span className="font-mono text-xs text-deep">Salvo</span>}
+              {saved && <span className="text-xs text-deep">Salvo</span>}
             </div>
+          </div>
+          <div role="tablist" aria-label="Seções da ficha" className="mt-3 flex gap-1">
+            {DRAWER_TABS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                aria-controls={`tab-${id}`}
+                onClick={() => setTab(id)}
+                className={`hit flex-1 rounded-sm px-3 py-2 text-sm font-medium transition-colors sm:flex-none ${
+                  tab === id ? 'bg-ink text-paper' : 'text-muted hover:bg-card'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </header>
 
         <div className="space-y-7 px-4 py-6 sm:px-6">
+          <div role="tabpanel" id="tab-resumo" hidden={tab !== 'resumo'} className="space-y-7">
           <section>
             <h3 className="eyebrow">Lacuna digital</h3>
             <div className="mt-3 rounded-sm border border-rule bg-card p-4">
@@ -507,7 +534,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as ProspectStatus)}
-                className="w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs"
+                className="w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm"
               >
                 {ALL_STATUS.map((s) => (
                   <option key={s} value={s}>
@@ -532,17 +559,17 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                     void onUpdate(p.id, {
                       next_action_at: addBusinessDaysISO(3),
                       contact_attempts: p.contact_attempts + 1,
-                    })
+                    }, 'Nova cobrança registrada')
                   } else {
                     void onUpdate(p.id, { next_action_at: addDaysISO(2) })
                   }
                 }}
-                className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs hover:bg-card"
+                className="rounded-sm border border-rule px-3 py-1.5 text-sm hover:bg-card"
               >
                 Cobrei de novo
               </button>
               {p.status === 'contatado' && (
-                <p className="mt-1.5 font-mono text-xs text-muted">
+                <p className="mt-1.5 text-xs text-muted">
                   {p.contact_attempts} tentativa{p.contact_attempts === 1 ? '' : 's'}
                 </p>
               )}
@@ -559,8 +586,8 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                   {SERVICE_LABEL[service]}
                 </span>
               </div>
-              <p className="font-mono text-xs text-muted">
-                {[serviceDateLabel(p), reminderLabel(p), p.monthly_fee ? `R$ ${p.monthly_fee}/mês` : null]
+              <p className="text-xs text-muted">
+                {[serviceDateLabel(p), reminderLabel(p), p.monthly_fee ? `${p.monthly_fee.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês` : null]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
@@ -568,15 +595,24 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
             </section>
           )}
 
+          {p.problem && (
+            <section>
+              <h3 className="eyebrow">O problema dele</h3>
+              <p className="mt-2 text-sm leading-relaxed">{p.problem}</p>
+            </section>
+          )}
+
+          </div>
+          <div role="tabpanel" id="tab-negocio" hidden={tab !== 'negocio'} className="space-y-7">
           <section className="space-y-3">
             <h3 className="eyebrow">Negócio</h3>
             <div className="grid grid-cols-2 gap-4">
               <label className="block">
-                <span className="font-mono text-xs text-muted">Valor combinado (R$)</span>
+                <span className="text-xs text-muted">Valor combinado (R$)</span>
                 <CurrencyInput value={dealValue} onChange={setDealValue} placeholder="0,00" />
               </label>
               <label className="block">
-                <span className="font-mono text-xs text-muted">Mensalidade (R$)</span>
+                <span className="text-xs text-muted">Mensalidade (R$)</span>
                 <CurrencyInput value={monthlyFee} onChange={setMonthlyFee} placeholder="Sem hospedagem com a gente" />
               </label>
             </div>
@@ -590,11 +626,11 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
             </label>
             <div className="grid grid-cols-2 gap-4">
               <label className="block">
-                <span className="font-mono text-xs text-muted">Sinal recebido (R$)</span>
+                <span className="text-xs text-muted">Sinal recebido (R$)</span>
                 <CurrencyInput value={depositPaidAmount} onChange={setDepositPaidAmount} placeholder="0,00" />
               </label>
               <label className="block">
-                <span className="font-mono text-xs text-muted">Pagamento final (R$)</span>
+                <span className="text-xs text-muted">Pagamento final (R$)</span>
                 <CurrencyInput value={finalPaidAmount} onChange={setFinalPaidAmount} placeholder="0,00" />
               </label>
             </div>
@@ -610,7 +646,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                       type="button"
                       onClick={handleDownloadContract}
                       disabled={downloadingContract}
-                      className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs hover:bg-card disabled:opacity-40"
+                      className="rounded-sm border border-rule px-3 py-1.5 text-sm hover:bg-card disabled:opacity-40"
                     >
                       {downloadingContract ? 'Abrindo…' : 'Baixar contrato'}
                     </button>
@@ -620,7 +656,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                         setContractError(null)
                         setContractModalOpen(true)
                       }}
-                      className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs hover:bg-card"
+                      className="rounded-sm border border-rule px-3 py-1.5 text-sm hover:bg-card"
                     >
                       Refazer contrato
                     </button>
@@ -632,14 +668,14 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                       setContractError(null)
                       setContractModalOpen(true)
                     }}
-                    className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs hover:bg-card"
+                    className="rounded-sm border border-rule px-3 py-1.5 text-sm hover:bg-card"
                   >
                     Gerar contrato
                   </button>
                 )}
               </div>
               {p.contract_generated_at && (
-                <p className="font-mono text-xs text-muted">
+                <p className="text-xs text-muted">
                   Gerado em {formatDateBR(p.contract_generated_at)}
                 </p>
               )}
@@ -651,25 +687,8 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
             </section>
           )}
 
-          {contractModalOpen && (
-            <ContractModal
-              prospect={p}
-              onSubmit={handleGenerateContract}
-              onClose={() => setContractModalOpen(false)}
-            />
-          )}
-
-          {discardOpen && (
-            <DiscardModal prospect={p} onConfirm={handleDiscard} onClose={() => setDiscardOpen(false)} />
-          )}
-
-          {p.problem && (
-            <section>
-              <h3 className="eyebrow">O problema dele</h3>
-              <p className="mt-2 text-sm leading-relaxed">{p.problem}</p>
-            </section>
-          )}
-
+          </div>
+          <div role="tabpanel" id="tab-contato" hidden={tab !== 'contato'} className="space-y-7">
           <section>
             <h3 className="eyebrow">Contato</h3>
             <dl className="mt-2 space-y-1.5 font-mono text-xs">
@@ -719,13 +738,13 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
 
             {!p.whatsapp && (
               <label className="mt-3 block">
-                <span className="font-mono text-xs text-muted">WhatsApp</span>
+                <span className="text-xs text-muted">WhatsApp</span>
                 <input
                   type="tel"
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   placeholder="(11) 99999-9999"
-                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+                  className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm placeholder:text-muted/70"
                 />
               </label>
             )}
@@ -735,7 +754,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 href={wa}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="mt-3 inline-block rounded-sm bg-deep px-3 py-2 font-mono text-xs font-medium text-card hover:opacity-90"
+                className="mt-3 inline-block rounded-sm bg-deep px-3 py-2 text-sm font-medium text-card hover:opacity-90"
               >
                 Abrir WhatsApp com a abordagem
               </a>
@@ -745,27 +764,27 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
           <section className="space-y-3">
             <h3 className="eyebrow">Protótipo e e-mail</h3>
             <label className="block">
-              <span className="font-mono text-xs text-muted">URL do protótipo</span>
+              <span className="text-xs text-muted">URL do protótipo</span>
               <input
                 type="url"
                 value={landing}
                 onChange={(e) => setLanding(e.target.value)}
                 placeholder="https://cliente.pages.dev"
-                className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+                className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm placeholder:text-muted/70"
               />
             </label>
             <label className="block">
-              <span className="font-mono text-xs text-muted">E-mail</span>
+              <span className="text-xs text-muted">E-mail</span>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="contato@cliente.com.br"
-                className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+                className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm placeholder:text-muted/70"
               />
             </label>
             {proto && (
-              <p className="font-mono text-xs text-muted">
+              <p className="text-xs text-muted">
                 Publicado em{' '}
                 <a
                   href={proto}
@@ -778,7 +797,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               </p>
             )}
             {status === 'triagem' && landing.trim() && (
-              <p className="font-mono text-xs text-deep">
+              <p className="text-xs text-deep">
                 Ao salvar, o status passa de Triagem para Prototipado.
               </p>
             )}
@@ -872,7 +891,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                 <select
                   value={draft.field}
                   onChange={(e) => updateSocialDraftField(i, e.target.value as SocialFieldKey)}
-                  className="w-32 shrink-0 rounded-sm border border-rule bg-card px-2 py-1.5 font-mono text-xs"
+                  className="w-32 shrink-0 rounded-sm border border-rule bg-card px-2 py-1.5 text-sm"
                 >
                   {optionsForSocialRow(i).map((f) => (
                     <option key={f.key} value={f.key}>
@@ -884,13 +903,13 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
                   value={draft.value}
                   onChange={(e) => updateSocialDraftValue(i, e.target.value)}
                   placeholder={SOCIAL_FIELDS.find((f) => f.key === draft.field)?.placeholder}
-                  className="min-w-0 flex-1 rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+                  className="min-w-0 flex-1 rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm placeholder:text-muted/70"
                 />
                 <button
                   type="button"
                   onClick={() => removeSocialDraft(i)}
                   aria-label="Remover"
-                  className="shrink-0 rounded-sm border border-rule px-2 font-mono text-xs text-muted hover:bg-card"
+                  className="shrink-0 rounded-sm border border-rule px-2 text-sm text-muted hover:bg-card"
                 >
                   ×
                 </button>
@@ -901,12 +920,14 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
               type="button"
               onClick={addSocialDraft}
               disabled={remainingSocialFields.length === 0}
-              className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs hover:bg-card disabled:opacity-40"
+              className="rounded-sm border border-rule px-3 py-1.5 text-sm hover:bg-card disabled:opacity-40"
             >
               + Adicionar informações
             </button>
           </section>
 
+          </div>
+          <div role="tabpanel" id="tab-notas" hidden={tab !== 'notas'} className="space-y-7">
           <section>
             <h3 className="eyebrow">Mensagem de abordagem</h3>
             <textarea
@@ -928,7 +949,20 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
             />
           </section>
 
-          <footer className="rule-top pt-4 font-mono text-xs text-muted">
+          </div>
+          {contractModalOpen && (
+            <ContractModal
+              prospect={p}
+              onSubmit={handleGenerateContract}
+              onClose={() => setContractModalOpen(false)}
+            />
+          )}
+
+          {discardOpen && (
+            <DiscardModal prospect={p} onConfirm={handleDiscard} onClose={() => setDiscardOpen(false)} />
+          )}
+
+          <footer className="rule-top pt-4 text-xs text-muted">
             Prospectado em {formatDateBR(p.prospected_at)}
             {p.last_contacted_at && ` · último contato em ${formatDateBR(p.last_contacted_at)}`}
           </footer>
@@ -970,13 +1004,13 @@ function SocialInfoRow({
             autoFocus
             value={editingValue}
             onChange={(e) => onChange(e.target.value)}
-            className="min-w-0 flex-1 rounded-sm border border-rule bg-card px-2.5 py-1 font-mono text-xs"
+            className="min-w-0 flex-1 rounded-sm border border-rule bg-card px-2.5 py-1 text-sm"
           />
           <button
             type="button"
             onClick={onCancelEdit}
             aria-label="Cancelar edição"
-            className="shrink-0 rounded-sm border border-rule px-2 font-mono text-xs text-muted hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2 text-sm text-muted hover:bg-card"
           >
             ×
           </button>
@@ -1048,10 +1082,10 @@ function DateField({ value, onChange }: { value: string; onChange: (v: string) =
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full min-w-0 rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs"
+        className="w-full min-w-0 rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm"
       />
       {isIOS && !value && (
-        <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center gap-1.5 font-mono text-xs text-muted">
+        <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center gap-1.5 text-xs text-muted">
           <CalendarIcon />
           dd/mm/aaaa
         </span>
@@ -1101,7 +1135,7 @@ function CurrencyInput({
       onChange={handleChange}
       onBlur={handleBlur}
       placeholder={placeholder}
-      className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 font-mono text-xs placeholder:text-muted/70"
+      className="mt-1 w-full rounded-sm border border-rule bg-card px-2.5 py-1.5 text-sm placeholder:text-muted/70"
     />
   )
 }

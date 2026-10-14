@@ -92,7 +92,7 @@ function Section({
   return (
     <section>
       <div className="flex items-baseline gap-2">
-        <h2 className="font-display text-lg font-semibold tracking-tight">{title}</h2>
+        <h2 className="font-display text-base font-semibold tracking-tight">{title}</h2>
         <span
           className={`text-xs tabular-nums ${urgent && count > 0 ? 'text-seal' : 'text-muted'}`}
         >

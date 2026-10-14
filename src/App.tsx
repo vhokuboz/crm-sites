@@ -59,7 +59,7 @@ function Crm({ email }: { email: string }) {
 
   return (
     <div className="min-h-dvh">
-      <header className="bg-ink text-cream">
+      <header className="on-ink bg-ink text-cream">
         <div className="mx-auto flex max-w-[88rem] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
           <img src="/okai-wordmark.webp" alt="Okai · web & digital" className="h-10 w-auto" />
 
@@ -130,7 +130,7 @@ function Crm({ email }: { email: string }) {
 
       {adding && <AddProspectModal onCreated={handleCreated} onClose={() => setAdding(false)} />}
 
-      {toast && <Toast message={toast.message} onUndo={toast.undo} onDismiss={dismissToast} />}
+      {toast && <Toast key={toast.id} message={toast.message} onUndo={toast.undo} onDismiss={dismissToast} />}
     </div>
   )
 }

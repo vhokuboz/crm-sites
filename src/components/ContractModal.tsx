@@ -80,7 +80,7 @@ export function ContractModal({ prospect, onSubmit, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-xs hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 text-sm hover:bg-card"
           >
             Fechar
           </button>
@@ -94,7 +94,7 @@ export function ContractModal({ prospect, onSubmit, onClose }: Props) {
               accept=".docx"
               required
               onChange={handleFileChange}
-              className="mt-1.5 w-full font-mono text-xs"
+              className="mt-1.5 w-full text-xs"
             />
           </label>
 
@@ -107,7 +107,7 @@ export function ContractModal({ prospect, onSubmit, onClose }: Props) {
                   type="text"
                   value={form[key] ?? ''}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                  className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 font-mono text-xs"
+                  className="mt-1.5 w-full rounded-sm border border-rule bg-card px-3 py-2 text-sm"
                 />
               </label>
             )

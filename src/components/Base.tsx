@@ -67,7 +67,7 @@ export function Base({ onOpen }: Props) {
           className="min-w-60 flex-1 rounded-sm border border-rule bg-card px-3 py-2 text-sm"
           aria-label="Buscar prospects"
         />
-        <span className="font-mono text-xs tabular-nums text-muted">
+        <span className="text-xs tabular-nums text-muted">
           {filteredCount} de {meta.data?.total ?? 0}
         </span>
       </div>
@@ -136,14 +136,14 @@ export function Base({ onOpen }: Props) {
                         {p.name}
                         {lastActivity && (
                           <span
-                            className={`ml-1 font-mono text-xs font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
+                            className={`ml-1 text-xs font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
                             title={`Última atividade social: ${lastActivity}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
                           >
                             · {lastActivity}
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-xs text-muted">{p.segment}</td>
+                      <td className="px-3 py-2.5 text-xs text-muted">{p.segment}</td>
                       <td className="px-3 py-2.5">
                         <div className="flex flex-wrap items-center gap-1">
                           <span
@@ -154,17 +154,17 @@ export function Base({ onOpen }: Props) {
                           <BusinessStatusBadge prospect={p} />
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-xs tabular-nums">
+                      <td className="px-3 py-2.5 text-xs tabular-nums">
                         {gap.reputation !== null ? (
                           <span className="text-gold">★ {gap.reputation.toFixed(1)}</span>
                         ) : (
                           <span className="text-muted">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-xs text-muted">
+                      <td className="px-3 py-2.5 text-xs text-muted">
                         {gap.presenceLabel}
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-xs font-semibold tabular-nums">
+                      <td className="px-3 py-2.5 text-xs font-semibold tabular-nums">
                         {gap.size !== null ? (
                           <span className={gap.size > 0 ? 'text-gold' : 'text-muted'}>
                             {gap.size > 0 ? '+' : ''}
@@ -174,7 +174,7 @@ export function Base({ onOpen }: Props) {
                           <span className="text-muted">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-xs tabular-nums text-muted">
+                      <td className="px-3 py-2.5 text-xs tabular-nums text-muted">
                         {formatDateBR(p.next_action_at)}
                       </td>
                       {/* Os atalhos não devem abrir a ficha por baixo deles. */}
@@ -218,14 +218,14 @@ function Row({ prospect: p, onOpen }: { prospect: Prospect; onOpen: (p: Prospect
             {p.name}
             {lastActivity && (
               <span
-                className={`ml-1 font-mono text-xs font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
+                className={`ml-1 text-xs font-normal ${risk ? RISK_TONE[risk] : 'text-muted'}`}
                 title={`Última atividade social: ${lastActivity}${risk ? ` · ${RISK_LABEL[risk]}` : ''}`}
               >
                 · {lastActivity}
               </span>
             )}
           </p>
-          <p className="mt-0.5 truncate font-mono text-xs text-muted">{p.segment}</p>
+          <p className="mt-0.5 truncate text-xs text-muted">{p.segment}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span
@@ -242,7 +242,7 @@ function Row({ prospect: p, onOpen }: { prospect: Prospect; onOpen: (p: Prospect
       </div>
 
       <div className="mt-2.5 rule-top pt-2.5">
-        <p className="font-mono text-xs text-muted">
+        <p className="text-xs text-muted">
           próxima ação {formatDateBR(p.next_action_at)}
         </p>
         {/* Os atalhos não devem abrir a ficha por baixo deles. */}
@@ -277,7 +277,7 @@ function Pill({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-2.5 py-1 font-mono text-xs transition-colors ${
+      className={`rounded-full border px-2.5 py-1 text-sm transition-colors ${
         active
           ? `border-transparent ${tone ?? 'bg-ink text-paper'}`
           : 'border-rule text-muted hover:bg-paper hover:text-ink'

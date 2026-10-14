@@ -56,7 +56,7 @@ export function DiscardModal({ prospect, onConfirm, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 font-mono text-xs hover:bg-card"
+            className="shrink-0 rounded-sm border border-rule px-2.5 py-1 text-sm hover:bg-card"
           >
             Fechar
           </button>
