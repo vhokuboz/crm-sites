@@ -5,6 +5,21 @@
 export type Database = {
   public: {
     Tables: {
+      prospect_events: {
+        Row: {
+          at: string
+          backfilled: boolean
+          from_status: Database['public']['Enums']['prospect_status'] | null
+          id: number
+          kind: string
+          prospect_id: string
+          to_status: Database['public']['Enums']['prospect_status'] | null
+        }
+        // Somente leitura no app: quem escreve é o gatilho prospects_record_events.
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       prospects: {
         Row: {
           address: string | null
