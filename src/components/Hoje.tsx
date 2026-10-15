@@ -6,12 +6,14 @@ import {
   STATUS_LABEL,
   buildQueue,
   byOpportunity,
+  daysFromToday,
   isOpen,
   readGap,
 } from '../lib/domain'
-import { SNOOZE_OPTIONS, contactPatch, matchesFilters, snoozePatch } from '../lib/queueActions'
+import { SNOOZE_OPTIONS, canContact, contactPatch, matchesFilters, snoozePatch } from '../lib/queueActions'
 import { Foco } from './Foco'
 import { ProspectCard } from './ProspectCard'
+import { CardGrid, Section, useStoredOpen } from './Section'
 import { ServicoFila } from './ServicoFila'
 
 type Props = {
@@ -42,6 +44,12 @@ export function Hoje({ prospects, onUpdate, onUpdateMany, onOpen }: Props) {
   const [selecting, setSelecting] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const searchRef = useRef<HTMLInputElement>(null)
+  const [openProposal, toggleProposal] = useStoredOpen('proposta', true)
+  const [openOverdue, toggleOverdue] = useStoredOpen('atrasados', true)
+  const [openToday, toggleToday] = useStoredOpen('hoje', true)
+  // O maior bloco e o menos urgente: comeca recolhido.
+  const [openLater, toggleLater] = useStoredOpen('sem-proximo-passo', false)
+  const [showAllLater, setShowAllLater] = useState(false)
 
   const segments = [...new Set(prospects.filter(isOpen).map((p) => p.segment).filter(Boolean))].sort()
   const filtered = prospects.filter((p) => matchesFilters(p, filters))
@@ -56,7 +64,8 @@ export function Hoje({ prospects, onUpdate, onUpdateMany, onOpen }: Props) {
       if (e.key === '/') searchRef.current?.focus()
       else if (e.key === 'f') setView((v) => (v === 'foco' ? 'lista' : 'foco'))
       else if (view === 'lista' && (e.key === 'j' || e.key === 'k')) {
-        const cards = [...document.querySelectorAll<HTMLElement>('[data-card]')]
+        // So os cards visiveis: secao recolhida fica de fora (display: none).
+        const cards = [...document.querySelectorAll<HTMLElement>('[data-card]')].filter((c) => c.offsetParent !== null)
         const at = cards.indexOf(document.activeElement as HTMLElement)
         const next = e.key === 'j' ? Math.min(at + 1, cards.length - 1) : Math.max(at - 1, 0)
         cards[at === -1 ? 0 : next]?.focus()
@@ -68,15 +77,29 @@ export function Hoje({ prospects, onUpdate, onUpdateMany, onOpen }: Props) {
     return () => document.removeEventListener('keydown', onKey)
   }, [view])
 
-  const allIds = [...queue.overdue, ...queue.today, ...queue.unscheduled].map((p) => p.id)
+  // Com busca ou filtro ativos nada fica recolhido: o resultado nao pode se esconder.
+  const show = (open: boolean) => open || filtering
+  const LATER_LIMIT = 6
+  const laterShown = showAllLater || filtering ? queue.unscheduled : queue.unscheduled.slice(0, LATER_LIMIT)
+  // "Marcar todos" so alcanca o que esta visivel.
+  const allIds = [
+    ...(show(openProposal) ? queue.proposal : []),
+    ...(show(openOverdue) ? queue.overdue : []),
+    ...(show(openToday) ? queue.today : []),
+    ...(show(openLater) ? laterShown : []),
+  ].map((p) => p.id)
   const toggle = (id: string) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
   const chosen = prospects.filter((p) => selected.includes(p.id))
   function leaveSelection() {
     setSelecting(false)
     setSelected([])
   }
-  async function bulk(label: string, patchFor: (p: Prospect) => Parameters<OnUpdate>[1]) {
-    await onUpdateMany(chosen.map((p) => ({ id: p.id, patch: patchFor(p) })), label)
+  async function bulk(
+    label: string,
+    patchFor: (p: Prospect) => Parameters<OnUpdate>[1],
+    only: (p: Prospect) => boolean = () => true,
+  ) {
+    await onUpdateMany(chosen.filter(only).map((p) => ({ id: p.id, patch: patchFor(p) })), label)
     leaveSelection()
   }
 
@@ -170,7 +193,7 @@ export function Hoje({ prospects, onUpdate, onUpdateMany, onOpen }: Props) {
         </p>
         {filtering && (
           <p className="text-meta text-muted" role="status">
-            Filtrando: {queue.overdue.length + queue.today.length + queue.unscheduled.length} na fila de{' '}
+            Filtrando: {queue.proposal.length + queue.overdue.length + queue.today.length + queue.unscheduled.length} na fila de{' '}
             {abertos.length} em aberto.
           </p>
         )}
@@ -180,35 +203,77 @@ export function Hoje({ prospects, onUpdate, onUpdateMany, onOpen }: Props) {
         <ServicoFila prospects={prospects} onUpdate={onUpdate} onOpen={onOpen} />
 
         <Section
+          title="Encaminhar proposta"
+          count={queue.proposal.length}
+          open={show(openProposal)}
+          onToggle={toggleProposal}
+          empty="Nenhum prototipado com mensagem e preview prontos."
+          hint="Protótipo no ar e mensagem escrita: só falta enviar."
+        >
+          <CardGrid>
+            {queue.proposal.map((p) => (
+              <ProspectCard
+                key={p.id}
+                prospect={p}
+                {...cardProps}
+                selected={selected.includes(p.id)}
+                tone={p.next_action_at && daysFromToday(p.next_action_at) < 0 ? 'overdue' : 'normal'}
+                contactLabel="Enviei a proposta"
+              />
+            ))}
+          </CardGrid>
+        </Section>
+
+        <Section
           title="Atrasados"
           count={queue.overdue.length}
+          open={show(openOverdue)}
+          onToggle={toggleOverdue}
           empty="Nada atrasado. A fila está em dia."
           urgent
         >
-          {queue.overdue.map((p) => (
-            <ProspectCard key={p.id} prospect={p} {...cardProps} selected={selected.includes(p.id)} tone="overdue" />
-          ))}
+          <CardGrid>
+            {queue.overdue.map((p) => (
+              <ProspectCard key={p.id} prospect={p} {...cardProps} selected={selected.includes(p.id)} tone="overdue" />
+            ))}
+          </CardGrid>
         </Section>
 
         <Section
           title="Para hoje"
           count={queue.today.length}
+          open={show(openToday)}
+          onToggle={toggleToday}
           empty="Nenhum retorno marcado para hoje."
         >
-          {queue.today.map((p) => (
-            <ProspectCard key={p.id} prospect={p} {...cardProps} selected={selected.includes(p.id)} />
-          ))}
+          <CardGrid>
+            {queue.today.map((p) => (
+              <ProspectCard key={p.id} prospect={p} {...cardProps} selected={selected.includes(p.id)} />
+            ))}
+          </CardGrid>
         </Section>
 
         <Section
           title="Sem próximo passo"
           count={queue.unscheduled.length}
+          open={show(openLater)}
+          onToggle={toggleLater}
           empty="Todo mundo em aberto tem uma data marcada."
           hint="Ordenados pela lacuna: primeiro quem é bem avaliado e mal representado."
         >
-          {queue.unscheduled.map((p) => (
-            <ProspectCard key={p.id} prospect={p} {...cardProps} selected={selected.includes(p.id)} />
-          ))}
+          <CardGrid>
+            {laterShown.map((p) => (
+              <ProspectCard key={p.id} prospect={p} {...cardProps} selected={selected.includes(p.id)} />
+            ))}
+          </CardGrid>
+          {queue.unscheduled.length > LATER_LIMIT && !filtering && (
+            <button
+              onClick={() => setShowAllLater(!showAllLater)}
+              className="hit mt-3 px-1 py-2 text-body text-muted underline underline-offset-2 hover:text-ink"
+            >
+              {showAllLater ? `Mostrar só os ${LATER_LIMIT} primeiros` : `Ver todos (${queue.unscheduled.length})`}
+            </button>
+          )}
         </Section>
       </div>
 
@@ -235,8 +300,9 @@ export function Hoje({ prospects, onUpdate, onUpdateMany, onOpen }: Props) {
               {selected.length === 0 ? 'Marque os cards' : `${selected.length} selecionado${selected.length === 1 ? '' : 's'}`}
             </p>
             <button
-              disabled={selected.length === 0}
-              onClick={() => void bulk('Contato registrado', (p) => contactPatch(p))}
+              disabled={!chosen.some(canContact)}
+              title={chosen.some((p) => !canContact(p)) ? 'Prospects em triagem ficam de fora' : undefined}
+              onClick={() => void bulk('Contato registrado', (p) => contactPatch(p), canContact)}
               className="hit min-h-10 rounded-sm bg-cream px-3.5 text-body font-medium text-ink disabled:opacity-40"
             >
               Marquei contato
@@ -261,44 +327,6 @@ export function Hoje({ prospects, onUpdate, onUpdateMany, onOpen }: Props) {
         </div>
       )}
     </div>
-  )
-}
-
-function Section({
-  title,
-  count,
-  empty,
-  hint,
-  urgent = false,
-  children,
-}: {
-  title: string
-  count: number
-  empty: string
-  hint?: string
-  urgent?: boolean
-  children: React.ReactNode
-}) {
-  return (
-    <section>
-      <div className="flex items-baseline gap-2">
-        <h2 className="font-display text-base font-semibold tracking-tight">{title}</h2>
-        <span
-          className={`text-xs tabular-nums ${urgent && count > 0 ? 'text-seal-ink' : 'text-muted'}`}
-        >
-          {count}
-        </span>
-      </div>
-      {hint && <p className="mt-1 text-body text-muted">{hint}</p>}
-
-      {count === 0 ? (
-        <p className="mt-3 rounded-sm border border-dashed border-rule px-4 py-6 text-center text-body text-muted">
-          {empty}
-        </p>
-      ) : (
-        <div className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">{children}</div>
-      )}
-    </section>
   )
 }
 

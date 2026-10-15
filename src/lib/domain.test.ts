@@ -7,7 +7,9 @@ import {
   addMonthsISO,
   canDiscard,
   closesHostedSite,
+  buildQueue,
   daysBetweenISO,
+  readyToSend,
   statusTransitionPatch,
 } from './domain.ts'
 import type { Prospect } from './database.types.ts'
@@ -182,4 +184,38 @@ test('statusTransitionPatch - perdido e descartado zeram next_action_at e last_r
     assert.equal(patch.next_action_at, null)
     assert.equal(patch.last_reminded_at, null)
   }
+})
+
+function ready(over: Partial<Prospect> = {}): Prospect {
+  return {
+    id: 'x', status: 'prototipado', approach_message: 'Oi!', landing_page_url: 'https://cliente.pages.dev',
+    next_action_at: null, google_rating: null, website_quality: null, website: null,
+    ...over,
+  } as unknown as Prospect
+}
+
+test('readyToSend - exige prototipado, mensagem escrita e URL do preview', () => {
+  assert.equal(readyToSend(ready()), true)
+  assert.equal(readyToSend(ready({ status: 'triagem' })), false)
+  assert.equal(readyToSend(ready({ approach_message: '   ' })), false)
+  assert.equal(readyToSend(ready({ approach_message: null })), false)
+  assert.equal(readyToSend(ready({ landing_page_url: null })), false)
+})
+
+test('buildQueue - pronto para enviar sai das outras listas, mesmo atrasado', () => {
+  const atrasado = ready({ id: 'a', next_action_at: addDaysISO(-2) })
+  const semDataSemMensagem = ready({ id: 'b', approach_message: null })
+  const q = buildQueue([atrasado, semDataSemMensagem])
+  assert.deepEqual(q.proposal.map((p) => p.id), ['a'])
+  assert.deepEqual(q.overdue.map((p) => p.id), [])
+  assert.deepEqual(q.unscheduled.map((p) => p.id), ['b'])
+})
+
+test('buildQueue - proposta ordena por data de retorno, sem data por último', () => {
+  const q = buildQueue([
+    ready({ id: 'sem' }),
+    ready({ id: 'hoje', next_action_at: addDaysISO(0) }),
+    ready({ id: 'velho', next_action_at: addDaysISO(-5) }),
+  ])
+  assert.deepEqual(q.proposal.map((p) => p.id), ['velho', 'hoje', 'sem'])
 })

@@ -526,15 +526,33 @@ export function statusTransitionPatch(
 /* ----------------------------------------------------------- fila do dia --- */
 
 export type Queue = {
+  /** Protótipo no ar e mensagem escrita: só falta enviar. Sai das outras listas. */
+  proposal: Prospect[]
   overdue: Prospect[]
   today: Prospect[]
   unscheduled: Prospect[]
 }
 
+/** Pronto para encaminhar a proposta: prototipado, com mensagem de abordagem e URL do preview. */
+export function readyToSend(p: Prospect): boolean {
+  return p.status === 'prototipado' && !!p.approach_message?.trim() && !!prototypeUrl(p)
+}
+
 export function buildQueue(prospects: Prospect[]): Queue {
-  const open = prospects.filter(isOpen)
+  const all = prospects.filter(isOpen)
   const hoje = todayISO()
+  // Cada prospect aparece em uma lista só: quem está pronto para enviar fica
+  // em "proposal", mesmo que tenha data de retorno vencida ou de hoje.
+  const proposal = all
+    .filter(readyToSend)
+    .sort((a, b) => {
+      const da = a.next_action_at ?? '9999'
+      const db = b.next_action_at ?? '9999'
+      return da !== db ? da.localeCompare(db) : byOpportunity(a, b)
+    })
+  const open = all.filter((p) => !readyToSend(p))
   return {
+    proposal,
     overdue: open
       .filter((p) => p.next_action_at !== null && p.next_action_at < hoje)
       .sort((a, b) => (a.next_action_at ?? '').localeCompare(b.next_action_at ?? '')),

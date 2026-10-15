@@ -12,6 +12,11 @@ export function snoozePatch(days: number): ProspectUpdate {
   return { next_action_at: addDaysISO(days) }
 }
 
+/** Em triagem o prospect ainda esta sendo avaliado: nao se registra contato (nem se pula o protótipo). */
+export function canContact(p: Pick<Prospect, 'status'>): boolean {
+  return p.status !== 'triagem'
+}
+
 /**
  * "Registrei contato": antes do primeiro contato vira "contatado" (a regra de
  * transição agenda o retorno); nos demais casos soma o retorno de 3 dias.

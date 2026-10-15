@@ -7,6 +7,7 @@ import {
   MIN_SAMPLE,
   conversionBy,
   dimensionKey,
+  funnelSummary,
   weekDelta,
   weeklyCounts,
   wasContacted,
@@ -64,6 +65,13 @@ function Panorama({ prospects, onGoto }: ResumoProps) {
             {queue.overdue.length} atrasado{queue.overdue.length === 1 ? '' : 's'}
           </span>{' '}
           · <span className="font-semibold">{queue.today.length}</span> para hoje
+          {queue.proposal.length > 0 && (
+            <>
+              {' '}
+              · <span className="font-semibold">{queue.proposal.length}</span> proposta
+              {queue.proposal.length === 1 ? '' : 's'} para enviar
+            </>
+          )}
           {servico > 0 && (
             <>
               {' '}
@@ -191,7 +199,7 @@ function Conversao({ prospects }: Props) {
 
   const rows = conversionBy(prospects, (p) => dimensionKey(dim, p))
   const shown = all ? rows : rows.slice(0, 8)
-  const contacted = prospects.filter(wasContacted).length
+  const f = funnelSummary(prospects)
 
   return (
     <section aria-labelledby="conversao">
@@ -199,8 +207,13 @@ function Conversao({ prospects }: Props) {
         Onde vale prospectar
       </h2>
       <p className="mt-1 text-body text-muted">
-        Taxas sobre quem já foi contatado: {contacted} de {prospects.length} prospects. Prospect perdido conta como
-        contatado, mas não como respondeu. Com menos de {MIN_SAMPLE} contatos a taxa ainda não diz nada.
+        Do total de {f.total} prospects, você descartou {f.discarded}; contatou {f.contacted}; {f.lost} responderam e
+        não quiseram seguir; {f.won} fecharam. As taxas são sobre quem foi contatado.
+      </p>
+      <p className="mt-1 text-meta text-muted">
+        Perdido = o cliente respondeu e não quis seguir (conta como contatado e como respondeu). Descartado = escolha
+        sua, inclusive quando não houve resposta: só conta como contatado se houver registro de contato. Com menos
+        de {MIN_SAMPLE} contatos a taxa ainda não diz nada.
       </p>
 
       <div role="group" aria-label="Agrupar por" className="mt-3 flex flex-wrap gap-1">
@@ -230,7 +243,8 @@ function Conversao({ prospects }: Props) {
             <div className="min-w-0">
               <p className={`break-words font-semibold ${r.small ? 'text-muted' : ''}`}>{r.label}</p>
               <p className="text-meta text-muted">
-                {r.total} prospects · {r.contacted} contatados · {r.responded} responderam · {r.won} fecharam
+                {r.total} prospects · {r.discarded} descartados · {r.contacted} contatados · {r.responded} responderam ·
+                {r.lost} perderam · {r.won} fecharam
                 {r.small && ' · amostra pequena'}
               </p>
             </div>

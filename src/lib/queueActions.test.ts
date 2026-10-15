@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { addBusinessDaysISO, addDaysISO } from './domain.ts'
-import { canRepeat, contactPatch, matchesFilters, repeatPatch, snoozePatch } from './queueActions.ts'
+import { canContact, canRepeat, contactPatch, matchesFilters, repeatPatch, snoozePatch } from './queueActions.ts'
 
 test('snoozePatch - agenda a partir de hoje', () => {
   assert.equal(snoozePatch(3).next_action_at, addDaysISO(3))
@@ -42,4 +42,10 @@ test('matchesFilters - ignora acento e caixa, e combina segmento e status', () =
   assert.equal(matchesFilters(p, { ...none, query: 'advogado' }), false)
   assert.equal(matchesFilters(p, { ...none, segment: 'Dentista', status: 'novo' }), true)
   assert.equal(matchesFilters(p, { ...none, status: 'triagem' }), false)
+})
+
+test('canContact - triagem nao registra contato; as demais etapas sim', () => {
+  assert.equal(canContact({ status: 'triagem' }), false)
+  assert.equal(canContact({ status: 'prototipado' }), true)
+  assert.equal(canContact({ status: 'contatado' }), true)
 })

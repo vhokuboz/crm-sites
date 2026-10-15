@@ -8,9 +8,10 @@ import {
   buildQueue,
   inactivityRisk,
   lastSocialActivityLabel,
+  readyToSend,
   relativeDay,
 } from '../lib/domain'
-import { SNOOZE_OPTIONS, canRepeat, contactPatch, repeatPatch, snoozePatch } from '../lib/queueActions'
+import { SNOOZE_OPTIONS, canContact, canRepeat, contactPatch, repeatPatch, snoozePatch } from '../lib/queueActions'
 import type { OnUpdate } from '../lib/useProspects'
 import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { GapMeter } from './GapMeter'
@@ -36,12 +37,15 @@ export function Foco({ prospects, onUpdate, onOpen, onExit }: Props) {
   const [copied, setCopied] = useState<'ok' | 'erro' | null>(null)
 
   const q = buildQueue(prospects)
-  const all = [...q.overdue, ...q.today, ...q.unscheduled]
+  // Propostas prontas primeiro: o trabalho caro ja foi feito, so falta enviar.
+  const all = [...q.proposal, ...q.overdue, ...q.today, ...q.unscheduled]
   // Quem foi pulado vai para o fim da fila, sem sair dela.
   const ordered = [...all.filter((p) => !skipped.includes(p.id)), ...all.filter((p) => skipped.includes(p.id))]
   const p = ordered[0]
   const total = done + ordered.length
   const repeat = !!p && canRepeat(p)
+  // Em triagem ainda se avalia o prospect: sem botao de contato, so adiar, pular ou abrir a ficha.
+  const blocked = !!p && !repeat && !canContact(p)
 
   async function act(patch: Parameters<OnUpdate>[1], label: string) {
     if (!p || busy) return
@@ -51,7 +55,7 @@ export function Foco({ prospects, onUpdate, onOpen, onExit }: Props) {
     setBusy(false)
   }
 
-  const send = () => act(repeat ? repeatPatch(p!) : contactPatch(p!), repeat ? 'Nova cobrança registrada' : 'Contato registrado')
+  const send = () => blocked || act(repeat ? repeatPatch(p!) : contactPatch(p!), repeat ? 'Nova cobrança registrada' : 'Contato registrado')
   const snooze = (days: number, label: string) => act(snoozePatch(days), `Adiado: ${label.toLowerCase()}`)
   const skip = () => p && ordered.length > 1 && setSkipped((s) => [...s.filter((id) => id !== p.id), p.id])
 
@@ -197,11 +201,16 @@ export function Foco({ prospects, onUpdate, onOpen, onExit }: Props) {
         <div className="mt-6 space-y-3 rule-top pt-5">
           <button
             onClick={() => void send()}
-            disabled={busy}
+            disabled={busy || blocked}
             className="hit flex min-h-12 w-full items-center justify-center gap-2 rounded-sm bg-ink px-4 py-3 text-base font-semibold text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
           >
-            {repeat ? 'Cobrei de novo' : 'Enviei'} <span className={`${KEY} hidden sm:inline-flex`}>↵</span>
+            {repeat ? 'Cobrei de novo' : readyToSend(p) ? 'Enviei a proposta' : 'Enviei'} <span className={`${KEY} hidden sm:inline-flex`}>↵</span>
           </button>
+          {blocked && (
+            <p className="text-meta text-muted">
+              Em triagem: avalie o prospect na ficha antes de contatar. Você ainda pode adiar ou pular.
+            </p>
+          )}
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-meta text-muted">Adiar:</span>

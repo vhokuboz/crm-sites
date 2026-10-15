@@ -2,6 +2,7 @@ import type { OnUpdate } from '../lib/useProspects'
 import type { Prospect } from '../lib/database.types'
 import { serviceQueue } from '../lib/service'
 import { ClienteRow } from './ClienteRow'
+import { CardGrid, Section, useStoredOpen } from './Section'
 
 type Props = {
   prospects: Prospect[]
@@ -12,20 +13,23 @@ type Props = {
 /** Fila de serviço do dia: suspensões pendentes, cobranças e renovações. Some quando não há nada. */
 export function ServicoFila({ prospects, onUpdate, onOpen }: Props) {
   const queue = serviceQueue(prospects)
+  const [open, toggle] = useStoredOpen('servico', true)
   if (queue.length === 0) return null
 
   return (
-    <section>
-      <div className="flex items-baseline gap-2">
-        <h2 className="font-display text-base font-semibold tracking-tight">Serviço</h2>
-        <span className="text-xs text-seal-ink">{queue.length}</span>
-      </div>
-      <p className="mt-1 text-body text-muted">Suspensões pendentes, cobranças e renovações.</p>
-      <div className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+    <Section
+      title="Serviço"
+      count={queue.length}
+      open={open}
+      onToggle={toggle}
+      hint="Suspensões pendentes, cobranças e renovações."
+      urgent
+    >
+      <CardGrid>
         {queue.map((p) => (
           <ClienteRow key={p.id} prospect={p} onUpdate={onUpdate} onOpen={onOpen} />
         ))}
-      </div>
-    </section>
+      </CardGrid>
+    </Section>
   )
 }

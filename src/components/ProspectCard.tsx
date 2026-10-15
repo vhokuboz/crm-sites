@@ -13,7 +13,7 @@ import {
   prototypeUrl,
   relativeDay,
 } from '../lib/domain'
-import { SNOOZE_OPTIONS, canRepeat, contactPatch, repeatPatch, snoozePatch } from '../lib/queueActions'
+import { SNOOZE_OPTIONS, canContact, canRepeat, contactPatch, repeatPatch, snoozePatch } from '../lib/queueActions'
 import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { DiscardModal } from './DiscardModal'
 import { GapMeter } from './GapMeter'
@@ -28,6 +28,8 @@ type Props = {
   selecting?: boolean
   selected?: boolean
   onSelect?: (id: string) => void
+  /** Texto do botao de contato (ex.: "Enviei a proposta"). */
+  contactLabel?: string
 }
 
 /** Envelope com relógio: usado no botão "marcar contato" (contato + próximo
@@ -113,6 +115,7 @@ export function ProspectCard({
   selecting = false,
   selected = false,
   onSelect,
+  contactLabel = 'Marquei contato',
 }: Props) {
   const [copied, setCopied] = useState<'ok' | 'erro' | null>(null)
   // Segura cliques repetidos enquanto a gravacao nao volta ("cobrei de novo" somaria 2x).
@@ -160,7 +163,7 @@ export function ProspectCard({
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.target !== e.currentTarget || e.metaKey || e.ctrlKey || e.altKey || busy) return
     if (e.key === 'Enter' || e.key === 'e') onOpen(p)
-    else if (e.key === 'c') podeCobrarDeNovo ? cobrarDeNovo() : markContacted()
+    else if (e.key === 'c') podeCobrarDeNovo ? cobrarDeNovo() : canContact(p) && markContacted()
     else if (e.key === 'a') snooze(1, 'amanhã')
     else if (e.key === 'x' && selecting) onSelect?.(p.id)
     else return
@@ -242,10 +245,10 @@ export function ProspectCard({
 
       <div className="mt-auto space-y-2.5 rule-top pt-3.5">
         {/* Uma acao principal, larga e com texto, decidida pelo status. */}
-        {(p.status === 'triagem' || p.status === 'prototipado') && (
+        {p.status === 'prototipado' && (
           <button onClick={markContacted} disabled={busy} className={PRIMARY}>
             <ContactIcon size={14} />
-            Marquei contato
+            {contactLabel}
           </button>
         )}
         {podeCobrarDeNovo && (

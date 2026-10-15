@@ -57,17 +57,21 @@ export function weekDelta(weeks: WeekRow[], key: 'novos' | 'contratos' | 'fecham
 
 /* ---------------------------------------------------------- conversao --- */
 
-// Da negociacao em diante: o prospect respondeu e entrou no processo.
+// Respondeu = entrou no processo (da negociacao em diante) ou recusou: "perdido" so
+// se usa quando o cliente respondeu e nao quis seguir. Quem nao responde e
+// "descartado" (escolha do dono) e nunca conta como resposta.
 const RESPONDED: ProspectStatus[] = [
   'briefing', 'aguardando_pendencias', 'refinamento', 'em_analise', 'entrega',
-  'aguardando_pagamento', 'finalizado', 'respondeu', 'negociando', 'fechado',
+  'aguardando_pagamento', 'finalizado', 'respondeu', 'negociando', 'fechado', 'perdido',
 ]
 const WON: ProspectStatus[] = ['finalizado', 'fechado']
 
 export const reachedResponse = (p: Pick<Prospect, 'status'>) => RESPONDED.includes(p.status)
+export const wasLost = (p: Pick<Prospect, 'status'>) => p.status === 'perdido'
+export const wasDiscarded = (p: Pick<Prospect, 'status'>) => p.status === 'descartado'
 export const reachedWon = (p: Pick<Prospect, 'status'>) => WON.includes(p.status)
 
-/** Foi abordado: tem registro de contato, ou ja esta numa etapa que so existe depois dele. */
+/** Foi abordado: tem registro de contato, ou ja esta numa etapa que so existe depois dele (perdido inclui). */
 export const wasContacted = (p: Pick<Prospect, 'status' | 'last_contacted_at' | 'contact_attempts'>) =>
   p.last_contacted_at !== null || p.contact_attempts > 0 || p.status === 'contatado' || reachedResponse(p)
 
@@ -80,6 +84,10 @@ export type ConversionRow = {
   contacted: number
   responded: number
   won: number
+  /** Responderam e nao quiseram seguir. */
+  lost: number
+  /** Descartados pelo dono (inclui quem nao respondeu); fora do denominador das taxas se nunca contatados. */
+  discarded: number
   /** responderam / contatados; null sem contatos. */
   respRate: number | null
   wonRate: number | null
@@ -93,12 +101,16 @@ export function conversionBy(ps: Prospect[], key: (p: Prospect) => string): Conv
     const contacted = g.filter(wasContacted).length
     const responded = g.filter(reachedResponse).length
     const won = g.filter(reachedWon).length
+    const lost = g.filter(wasLost).length
+    const discarded = g.filter(wasDiscarded).length
     return {
       label,
       total: g.length,
       contacted,
       responded,
       won,
+      lost,
+      discarded,
       respRate: contacted ? responded / contacted : null,
       wonRate: contacted ? won / contacted : null,
       small: contacted < MIN_SAMPLE,
@@ -112,6 +124,25 @@ export function conversionBy(ps: Prospect[], key: (p: Prospect) => string): Conv
       b.contacted - a.contacted ||
       b.total - a.total,
   )
+}
+
+export type FunnelSummary = {
+  total: number
+  discarded: number
+  contacted: number
+  lost: number
+  won: number
+}
+
+/** Prospects -> descartados por voce -> contatados -> perderam / fecharam. */
+export function funnelSummary(ps: Prospect[]): FunnelSummary {
+  return {
+    total: ps.length,
+    discarded: ps.filter(wasDiscarded).length,
+    contacted: ps.filter(wasContacted).length,
+    lost: ps.filter(wasLost).length,
+    won: ps.filter(reachedWon).length,
+  }
 }
 
 export type Dimension = 'segmento' | 'cidade' | 'presenca' | 'lacuna'

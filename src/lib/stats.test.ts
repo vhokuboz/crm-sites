@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { conversionBy, dimensionKey, wasContacted, weekStartISO, weeklyCounts, toLocalISO } from './stats.ts'
+import { conversionBy, dimensionKey, funnelSummary, wasContacted, weekStartISO, weeklyCounts, toLocalISO } from './stats.ts'
 import type { Prospect } from './database.types.ts'
 
 const fake = (o: Partial<Prospect>): Prospect =>
@@ -53,9 +53,10 @@ test('conversionBy - taxas sobre contatados e amostra pequena', () => {
   const [row] = conversionBy(ps, (p) => p.segment)
   assert.equal(row.total, 4)
   assert.equal(row.contacted, 3)
-  assert.equal(row.responded, 1)
+  assert.equal(row.responded, 2) // finalizado e perdido (o cliente respondeu e recusou)
   assert.equal(row.won, 1)
-  assert.equal(row.respRate, 1 / 3)
+  assert.equal(row.lost, 1)
+  assert.equal(row.respRate, 2 / 3)
   assert.equal(row.small, true)
 })
 
@@ -64,4 +65,29 @@ test('dimensionKey - presenca e lacuna em faixas', () => {
   assert.equal(dimensionKey('presenca', fake({})), 'Não avaliado')
   assert.equal(dimensionKey('lacuna', fake({ google_rating: 4.8, website_quality: 'sem site' })), 'Grande (3 pontos ou mais)')
   assert.equal(dimensionKey('lacuna', fake({})), 'Sem nota ou presença')
+})
+
+test('perdido conta como contatado e respondeu; descartado sem contato fica fora das taxas', () => {
+  const ps = [
+    fake({ status: 'perdido' }), // sem registro de contato, mas o cliente respondeu
+    fake({ status: 'descartado' }), // escolha do dono, nunca abordado
+    fake({ status: 'descartado', contact_attempts: 2 }), // abordado, nao respondeu, descartado
+  ]
+  const [row] = conversionBy(ps, (p) => p.segment)
+  assert.equal(row.total, 3)
+  assert.equal(row.contacted, 2)
+  assert.equal(row.responded, 1)
+  assert.equal(row.lost, 1)
+  assert.equal(row.discarded, 2)
+  assert.equal(row.respRate, 1 / 2)
+})
+
+test('funnelSummary - descartados a parte, contatados incluem perdidos', () => {
+  const s = funnelSummary([
+    fake({ status: 'novo' }),
+    fake({ status: 'descartado' }),
+    fake({ status: 'perdido' }),
+    fake({ status: 'finalizado' }),
+  ])
+  assert.deepEqual(s, { total: 4, discarded: 1, contacted: 2, lost: 1, won: 1 })
 })
