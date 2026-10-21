@@ -64,3 +64,36 @@ export function extractCity(components: AddressComponent[] | undefined): string 
   const uf = find('administrative_area_level_1')?.shortText
   return city && uf ? `${city}/${uf}` : null
 }
+
+/**
+ * Título do local gravado no parâmetro `!15s<base64>` da URL do Maps (um protobuf
+ * cujo 1º campo é o título). Pode diferir do slug do caminho, ex.:
+ * "Giovanna Milani | Nutricionista" vs `/place/Nutricionista+Giovanna+Milani/`.
+ */
+export function extractMapsTitle(url: string): string | null {
+  const m = url.match(/!15s([A-Za-z0-9_%-]+)/)
+  if (!m) return null
+  try {
+    const b64 = decodeURIComponent(m[1]).replace(/-/g, '+').replace(/_/g, '/')
+    const bytes = Uint8Array.from(atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4)), (c) => c.charCodeAt(0))
+    // campo 1 (tag 0x0a) com tamanho < 128
+    if (bytes[0] !== 0x0a || bytes[1] >= 128) return null
+    return new TextDecoder().decode(bytes.slice(2, 2 + bytes[1])) || null
+  } catch {
+    return null
+  }
+}
+
+const plainTokens = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+
+/** O nome devolvido pelo Places contém todas as palavras do que foi buscado (sem acento/caixa/ordem). */
+export function nameMatches(searched: string, found: string): boolean {
+  const have = new Set(plainTokens(found))
+  return plainTokens(searched).every((t) => have.has(t))
+}

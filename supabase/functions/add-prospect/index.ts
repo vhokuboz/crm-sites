@@ -8,6 +8,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   extractCity,
+  extractMapsTitle,
+  nameMatches,
   extractInstagramHandle,
   extractNameAndLocation,
   extractPlaceId,
@@ -73,9 +75,13 @@ async function findPlace(googleMapsUrl: string) {
   }
 
   // 1) pino do local, 2) centro do mapa (`@`), 3) só pelo nome, aceitando apenas
-  // resultado a até 30 km do pino (evita homônimo de outra cidade).
-  const attempts = [{ lat: loc.lat, lng: loc.lng }, loc.center, null]
-  for (const p of attempts) {
+  // resultado a até 30 km do pino e cujo nome contenha todas as palavras buscadas.
+  // Cada tentativa vale para o nome do caminho e para o título real do perfil.
+  const titles = [...new Set([loc.name, extractMapsTitle(resolved)].filter((t): t is string => !!t))]
+  const attempts = [{ lat: loc.lat, lng: loc.lng }, loc.center, null].flatMap((p) =>
+    titles.map((title) => ({ p, title })),
+  )
+  for (const { p, title } of attempts) {
     const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: {
@@ -84,7 +90,7 @@ async function findPlace(googleMapsUrl: string) {
         'X-Goog-FieldMask': FIELD_MASK,
       },
       body: JSON.stringify({
-        textQuery: loc.name,
+        textQuery: title,
         languageCode: 'pt-BR',
         ...(p && {
           locationBias: { circle: { center: { latitude: p.lat, longitude: p.lng }, radius: 200 } },
@@ -92,13 +98,21 @@ async function findPlace(googleMapsUrl: string) {
       }),
     })
     if (!res.ok) throw new Error(`Places API (busca) falhou: ${res.status} ${await res.text()}`)
-    const places: { location?: { latitude: number; longitude: number } }[] =
-      (await res.json()).places ?? []
-    const place = p ? places[0] : places.find((x) => x.location && kmBetween(x.location, loc) <= 30)
+    const places: {
+      displayName?: { text?: string }
+      location?: { latitude: number; longitude: number }
+    }[] = (await res.json()).places ?? []
+    // locationBias é só preferência: valida a distância e o nome pra não aceitar outro local.
+    const place = places.find(
+      (x) =>
+        x.location &&
+        kmBetween(x.location, loc) <= 30 &&
+        titles.some((t) => nameMatches(t, x.displayName?.text ?? '')),
+    )
     if (place) return place
   }
   throw new Error(
-    `Nenhum resultado do Places API para "${loc.name}" (pino ${loc.lat},${loc.lng}; ` +
+    `Nenhum resultado do Places API para ${titles.map((t) => `"${t}"`).join(' / ')} (pino ${loc.lat},${loc.lng}; ` +
       `centro ${loc.center.lat},${loc.center.lng}).`,
   )
 }

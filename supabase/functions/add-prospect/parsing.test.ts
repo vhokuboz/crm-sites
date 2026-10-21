@@ -1,6 +1,8 @@
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts'
 import {
   extractCity,
+  extractMapsTitle,
+  nameMatches,
   extractInstagramHandle,
   extractNameAndLocation,
   extractPlaceId,
@@ -79,5 +81,24 @@ Deno.test('extractNameAndLocation - prefere a posição do pino (!3d!4d) ao cent
       lng: -46.4648744,
       center: { lat: -23.7837918, lng: -46.5410921 },
     },
+  )
+})
+
+Deno.test('extractMapsTitle - título real do perfil no parâmetro !15s', () => {
+  assertEquals(
+    extractMapsTitle(
+      'https://www.google.com/maps/place/Nutricionista+Giovanna+Milani/@-23.78,-46.54,13z/data=!4m7!3m6!8m2!3d-23.78!4d-46.46!15sCh9HaW92YW5uYSBNaWxhbmkgfCBOdXRyaWNpb25pc3RhWh8iHWdpb3Zhbm5hIG1pbGFuaSBudXRyaWNpb25pc3Rh!16s%2Fg%2F11kk16_126',
+    ),
+    'Giovanna Milani | Nutricionista',
+  )
+  assertEquals(extractMapsTitle('https://www.google.com/maps/place/X/@1.0,2.0,15z'), null)
+})
+
+Deno.test('nameMatches - exige todas as palavras, ignora ordem, acento e caixa', () => {
+  assertEquals(nameMatches('Nutricionista Giovanna Milani', 'Giovanna Milani | Nutricionista'), true)
+  assertEquals(nameMatches('Clínica Fisicom', 'clinica FISICOM'), true)
+  assertEquals(
+    nameMatches('Nutricionista Giovanna Milani', 'Nutricionista clínica e esportiva - Giovanna Drudi'),
+    false,
   )
 })
