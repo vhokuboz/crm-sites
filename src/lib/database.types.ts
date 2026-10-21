@@ -44,6 +44,7 @@ export type Database = {
           service_ended_at: string | null
           service_started_at: string | null
           suspended_at: string | null
+          tratamento: 'singular' | 'plural' | null
           google_cid: string | null
           google_last_review_at: string | null
           google_place_id: string | null
@@ -97,6 +98,7 @@ export type Database = {
           service_ended_at?: string | null
           service_started_at?: string | null
           suspended_at?: string | null
+          tratamento?: 'singular' | 'plural' | null
           google_cid?: string | null
           google_last_review_at?: string | null
           google_place_id?: string | null

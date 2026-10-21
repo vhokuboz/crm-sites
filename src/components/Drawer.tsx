@@ -50,6 +50,7 @@ import {
   QuickActions,
   WhatsAppIcon,
 } from './QuickActions'
+import { CopiarCobranca } from './CopiarCobranca'
 
 type Props = {
   prospect: Prospect
@@ -515,6 +516,11 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
           <div className="mt-3 flex items-center justify-between">
             <QuickActions prospect={p} size="md" />
             <div className="flex items-center gap-2">
+              <CopiarCobranca
+                prospect={p}
+                onUpdate={onUpdate}
+                className="hit rounded-sm border border-rule px-3 py-2 text-body hover:bg-paper"
+              />
               <button
                 onClick={saveText}
                 disabled={!dirty}

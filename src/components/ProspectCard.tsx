@@ -17,6 +17,7 @@ import { SNOOZE_OPTIONS, canContact, canRepeat, contactPatch, repeatPatch, snooz
 import { BusinessStatusBadge } from './BusinessStatusBadge'
 import { DiscardModal } from './DiscardModal'
 import { GapMeter } from './GapMeter'
+import { CopiarCobranca } from './CopiarCobranca'
 import { ArchiveIcon, CheckIcon, QuickActions } from './QuickActions'
 
 type Props = {
@@ -272,6 +273,7 @@ export function ProspectCard({
           <div className="min-w-0 flex-1">
             <QuickActions prospect={p} max={4} />
           </div>
+          <CopiarCobranca prospect={p} onUpdate={onUpdate} className={SECONDARY} />
           {p.approach_message && (
             <button onClick={copyApproach} aria-label="Copiar mensagem de abordagem" className={SECONDARY}>
               {copied === 'ok' ? <CheckIcon size={14} /> : <ClipboardCopyIcon size={14} />}
