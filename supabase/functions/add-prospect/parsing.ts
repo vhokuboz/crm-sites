@@ -49,3 +49,13 @@ export function resolveSegment(primaryType: string | null, fallbackLabel: string
   if (primaryType && SEGMENT_BY_PLACE_TYPE[primaryType]) return SEGMENT_BY_PLACE_TYPE[primaryType]
   return fallbackLabel ?? '[PREENCHER]'
 }
+
+type AddressComponent = { longText?: string; shortText?: string; types?: string[] }
+
+/** Monta "Cidade/UF" a partir do `addressComponents` do Places API; null se faltar algum. */
+export function extractCity(components: AddressComponent[] | undefined): string | null {
+  const find = (type: string) => components?.find((c) => c.types?.includes(type))
+  const city = (find('locality') ?? find('administrative_area_level_2'))?.longText
+  const uf = find('administrative_area_level_1')?.shortText
+  return city && uf ? `${city}/${uf}` : null
+}

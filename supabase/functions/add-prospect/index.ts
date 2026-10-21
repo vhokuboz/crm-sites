@@ -7,6 +7,7 @@
 // agente depois, não desta function.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
+  extractCity,
   extractInstagramHandle,
   extractNameAndLocation,
   extractPlaceId,
@@ -24,6 +25,7 @@ const FIELD_MASK = [
   'places.id',
   'places.displayName',
   'places.formattedAddress',
+  'places.addressComponents',
   'places.rating',
   'places.userRatingCount',
   'places.internationalPhoneNumber',
@@ -122,6 +124,8 @@ Deno.serve(async (req) => {
       name: place?.displayName?.text ?? (handle ? `@${handle}` : '[PREENCHER]'),
       segment: resolveSegment(place?.primaryType ?? null, place?.primaryTypeDisplayName?.text ?? null),
       address: place?.formattedAddress ?? null,
+      // sem cidade detectada, omite o campo e vale o default do banco
+      ...(extractCity(place?.addressComponents) && { city: extractCity(place.addressComponents)! }),
       contact: place?.internationalPhoneNumber ?? null,
       website: place?.websiteUri ?? null,
       google_rating: place?.rating ?? null,

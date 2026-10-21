@@ -1,5 +1,6 @@
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts'
 import {
+  extractCity,
   extractInstagramHandle,
   extractNameAndLocation,
   extractPlaceId,
@@ -54,4 +55,15 @@ Deno.test('resolveSegment - tipo sem mapeamento cai no nome legível do Places A
 
 Deno.test('resolveSegment - sem tipo nem nome usa placeholder', () => {
   assertEquals(resolveSegment(null, null), '[PREENCHER]')
+})
+
+Deno.test('extractCity - monta Cidade/UF', () => {
+  assertEquals(
+    extractCity([
+      { longText: 'Marília', shortText: 'Marília', types: ['administrative_area_level_2', 'political'] },
+      { longText: 'São Paulo', shortText: 'SP', types: ['administrative_area_level_1', 'political'] },
+    ]),
+    'Marília/SP',
+  )
+  assertEquals(extractCity(undefined), null)
 })
