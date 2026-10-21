@@ -268,12 +268,8 @@ export function ProspectCard({
           </button>
         )}
 
-        {/* Barra quieta: atalhos de link a esquerda, copiar e menu a direita. */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <QuickActions prospect={p} max={4} />
-          </div>
-          {/* Cobrança só existe quando o retorno venceu: é a ação do momento, então ganha o destaque. */}
+        {/* Copiar: linha própria, botões do mesmo tamanho. Cobrança (destaque) só existe com o retorno vencido. */}
+        <div className="flex gap-2 empty:hidden [&>*]:flex-1 [&>*]:justify-center">
           <CopiarCobranca
             prospect={p}
             onUpdate={onUpdate}
@@ -285,6 +281,13 @@ export function ProspectCard({
               {copied === 'ok' ? 'Copiado' : copied === 'erro' ? 'Não copiou' : 'Copiar abordagem'}
             </button>
           )}
+        </div>
+
+        {/* Barra quieta: atalhos de link a esquerda, menu a direita. */}
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <QuickActions prospect={p} max={4} />
+          </div>
           {isOpen(p) && (
             <details data-menu className="relative">
               <summary
