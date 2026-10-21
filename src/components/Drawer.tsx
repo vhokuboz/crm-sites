@@ -156,27 +156,36 @@ export function Drawer({ prospect: p, prospects, onUpdate, onReload, onClose }: 
   // outra ficha) -- nunca em resposta a um campo de p.* mudando por baixo
   // (ex. "Cobrei de novo" fazendo onUpdate direto), senão qualquer digitação
   // não salva em notes/approach/etc. some silenciosamente.
-  useEffect(() => {
-    setName(p.name)
-    setSegment(p.segment)
-    setCity(p.city)
+  function loadDraft(src: Prospect) {
+    setName(src.name)
+    setSegment(src.segment)
+    setCity(src.city)
     setEditingHeader(false)
-    setNotes(p.notes ?? '')
-    setApproach(p.approach_message ?? '')
-    setEmail(p.email ?? '')
-    setLanding(p.landing_page_url ?? '')
-    setWhatsapp(p.whatsapp ?? '')
+    setNotes(src.notes ?? '')
+    setApproach(src.approach_message ?? '')
+    setEmail(src.email ?? '')
+    setLanding(src.landing_page_url ?? '')
+    setWhatsapp(src.whatsapp ?? '')
     setEditingWhatsapp(false)
-    setStatus(p.status)
-    setNextAction(p.next_action_at ?? '')
-    setDealValue(p.deal_value?.toString() ?? '')
-    setMonthlyFee(p.monthly_fee?.toString() ?? '')
-    setDocsReceived(p.docs_received)
-    setDepositPaidAmount(p.deposit_paid_amount?.toString() ?? '')
-    setFinalPaidAmount(p.final_paid_amount?.toString() ?? '')
+    setStatus(src.status)
+    setNextAction(src.next_action_at ?? '')
+    setDealValue(src.deal_value?.toString() ?? '')
+    setMonthlyFee(src.monthly_fee?.toString() ?? '')
+    setDocsReceived(src.docs_received)
+    setDepositPaidAmount(src.deposit_paid_amount?.toString() ?? '')
+    setFinalPaidAmount(src.final_paid_amount?.toString() ?? '')
     setSocialDrafts([])
     setEditingSocial({})
-  }, [p.id])
+  }
+  useEffect(() => loadDraft(p), [p.id])
+
+  // Depois de salvar, o registro volta do banco normalizado (trim, número
+  // reformatado, status promovido por transição). Recarregar o rascunho dele
+  // evita que a ficha continue "suja" e peça pra salvar de novo.
+  const [syncTick, setSyncTick] = useState(0)
+  useEffect(() => {
+    if (syncTick > 0) loadDraft(p)
+  }, [syncTick])
 
   // "Cobrei de novo" atualiza p.next_action_at direto (sem passar pelo Salvar),
   // então esse campo precisa continuar refletindo o valor persistido -- sem
@@ -420,10 +429,7 @@ export function Drawer({ prospect: p, prospects, onUpdate, onReload, onClose }: 
     const ok = await onUpdate(p.id, patch)
     if (ok) {
       setSaved(true)
-      setSocialDrafts([])
-      setEditingSocial({})
-      setEditingWhatsapp(false)
-      setEditingHeader(false)
+      setSyncTick((t) => t + 1)
       setTimeout(() => setSaved(false), 1800)
     }
   }
