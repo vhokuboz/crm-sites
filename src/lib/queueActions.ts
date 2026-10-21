@@ -49,7 +49,7 @@ export function cobrancaMessage(p: Pick<Prospect, 'name' | 'tratamento' | 'landi
   if (p.tratamento === 'plural')
     return `Olá! Aqui é o Vitor Okubo, de Bauru. ${aviso}
 
-Resumindo: montei por conta própria uma amostra de página para o ${p.name}, para vocês verem como o espaço pode aparecer na internet e receber contatos pelo WhatsApp:
+Resumindo: montei por conta própria uma amostra de página para ${p.name}, para vocês verem como o espaço pode aparecer na internet e receber contatos pelo WhatsApp:
 ${p.landing_page_url}
 
 Se der, dê uma olhada e me diga o que acharam. Sem compromisso! Se preferirem, também posso explicar por aqui ou por telefone.`

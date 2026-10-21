@@ -57,7 +57,7 @@ test('cobrancaMessage - singular usa o primeiro nome, plural usa o nome do espa�
   assert.ok(s.includes(`${url}\n`) && s.includes('com o seu nome'))
   const pl = cobrancaMessage({ name: 'Espaço Wallon', tratamento: 'plural', landing_page_url: url })
   assert.ok(pl.startsWith('Olá! Aqui é'))
-  assert.ok(pl.includes('para o Espaço Wallon'))
+  assert.ok(pl.includes('para Espaço Wallon'))
 })
 
 test('canCopyCobranca - exige retorno vencido, tratamento e link', () => {
