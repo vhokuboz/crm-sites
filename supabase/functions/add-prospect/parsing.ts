@@ -12,7 +12,7 @@ export function extractPlaceId(url: string): string | null {
  */
 export function extractNameAndLocation(
   url: string,
-): { name: string; lat: number; lng: number } | null {
+): { name: string; lat: number; lng: number; center: { lat: number; lng: number } } | null {
   const m = url.match(/\/maps\/place\/([^/]+)\/@(-?\d+\.\d+),(-?\d+\.\d+)/)
   if (!m) return null
   // O `@lat,lng` é o centro do mapa na tela (pode estar a km do local, conforme

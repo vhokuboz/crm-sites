@@ -26,6 +26,7 @@ const FIELD_MASK = [
   'places.displayName',
   'places.formattedAddress',
   'places.addressComponents',
+  'places.location',
   'places.rating',
   'places.userRatingCount',
   'places.internationalPhoneNumber',
@@ -71,10 +72,10 @@ async function findPlace(googleMapsUrl: string) {
     )
   }
 
-  // Primeiro o pino do local; se não achar, o centro do mapa (`@`), como antes.
-  const points = [{ lat: loc.lat, lng: loc.lng }, loc.center]
-  for (const [n, p] of points.entries()) {
-    if (n > 0 && p.lat === points[0].lat && p.lng === points[0].lng) break
+  // 1) pino do local, 2) centro do mapa (`@`), 3) só pelo nome, aceitando apenas
+  // resultado a até 30 km do pino (evita homônimo de outra cidade).
+  const attempts = [{ lat: loc.lat, lng: loc.lng }, loc.center, null]
+  for (const p of attempts) {
     const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: {
@@ -85,14 +86,29 @@ async function findPlace(googleMapsUrl: string) {
       body: JSON.stringify({
         textQuery: loc.name,
         languageCode: 'pt-BR',
-        locationBias: { circle: { center: { latitude: p.lat, longitude: p.lng }, radius: 200 } },
+        ...(p && {
+          locationBias: { circle: { center: { latitude: p.lat, longitude: p.lng }, radius: 200 } },
+        }),
       }),
     })
     if (!res.ok) throw new Error(`Places API (busca) falhou: ${res.status} ${await res.text()}`)
-    const place = (await res.json()).places?.[0]
+    const places: { location?: { latitude: number; longitude: number } }[] =
+      (await res.json()).places ?? []
+    const place = p ? places[0] : places.find((x) => x.location && kmBetween(x.location, loc) <= 30)
     if (place) return place
   }
-  throw new Error(`Nenhum resultado do Places API para "${loc.name}".`)
+  throw new Error(
+    `Nenhum resultado do Places API para "${loc.name}" (pino ${loc.lat},${loc.lng}; ` +
+      `centro ${loc.center.lat},${loc.center.lng}).`,
+  )
+}
+
+function kmBetween(a: { latitude: number; longitude: number }, b: { lat: number; lng: number }) {
+  const rad = Math.PI / 180
+  const h =
+    Math.sin(((b.lat - a.latitude) * rad) / 2) ** 2 +
+    Math.cos(a.latitude * rad) * Math.cos(b.lat * rad) * Math.sin(((b.lng - a.longitude) * rad) / 2) ** 2
+  return 12742 * Math.asin(Math.sqrt(h))
 }
 
 Deno.serve(async (req) => {
