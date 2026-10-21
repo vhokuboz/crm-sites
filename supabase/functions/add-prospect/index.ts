@@ -10,6 +10,7 @@ import {
   extractCity,
   extractMapsTitle,
   nameMatches,
+  placeIdFromFtid,
   extractInstagramHandle,
   extractNameAndLocation,
   extractPlaceId,
@@ -56,14 +57,19 @@ async function resolveMapsUrl(url: string): Promise<string> {
 async function findPlace(googleMapsUrl: string) {
   const resolved = await resolveMapsUrl(googleMapsUrl)
 
-  const placeId = extractPlaceId(resolved)
-  if (placeId) {
+  // Place ID explícito na URL; senão o derivado do código 0x..:0x.. do Maps. O derivado
+  // pode não existir no Places (404): aí segue pra busca por nome em vez de falhar.
+  const explicitId = extractPlaceId(resolved)
+  for (const placeId of [explicitId, placeIdFromFtid(resolved)]) {
+    if (!placeId) continue
     const res = await fetch(
       `https://places.googleapis.com/v1/places/${placeId}?languageCode=pt-BR`,
       { headers: { 'X-Goog-Api-Key': PLACES_API_KEY!, 'X-Goog-FieldMask': DETAILS_FIELD_MASK } },
     )
-    if (!res.ok) throw new Error(`Places API (details) falhou: ${res.status} ${await res.text()}`)
-    return res.json()
+    if (res.ok) return res.json()
+    if (placeId === explicitId || res.status !== 404) {
+      throw new Error(`Places API (details) falhou: ${res.status} ${await res.text()}`)
+    }
   }
 
   const loc = extractNameAndLocation(resolved)

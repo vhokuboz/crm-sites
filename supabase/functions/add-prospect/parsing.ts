@@ -97,3 +97,16 @@ export function nameMatches(searched: string, found: string): boolean {
   const have = new Set(plainTokens(found))
   return plainTokens(searched).every((t) => have.has(t))
 }
+
+/**
+ * Converte o código `!1s0x<hex>:0x<hex>` (ftid) de uma URL do Maps no Place ID
+ * equivalente (`ChIJ...`): os dois números de 64 bits, em little-endian, dentro
+ * de um protobuf em base64url. Retorna null se a URL não tiver o código.
+ */
+export function placeIdFromFtid(url: string): string | null {
+  const m = url.match(/!1s0x([0-9a-f]{1,16}):0x([0-9a-f]{1,16})/i)
+  if (!m) return null
+  const le = (hex: string) => hex.padStart(16, '0').match(/../g)!.reverse().map((h) => parseInt(h, 16))
+  const bytes = Uint8Array.from([0x0a, 0x12, 0x09, ...le(m[1]), 0x11, ...le(m[2])])
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}

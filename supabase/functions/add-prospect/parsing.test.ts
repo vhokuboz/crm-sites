@@ -3,6 +3,7 @@ import {
   extractCity,
   extractMapsTitle,
   nameMatches,
+  placeIdFromFtid,
   extractInstagramHandle,
   extractNameAndLocation,
   extractPlaceId,
@@ -101,4 +102,12 @@ Deno.test('nameMatches - exige todas as palavras, ignora ordem, acento e caixa',
     nameMatches('Nutricionista Giovanna Milani', 'Nutricionista clínica e esportiva - Giovanna Drudi'),
     false,
   )
+})
+
+Deno.test('placeIdFromFtid - converte o código 0x..:0x.. do Maps em Place ID', () => {
+  assertEquals(
+    placeIdFromFtid('https://www.google.com/maps/place/X/@1,2,11z/data=!4m6!3m5!1s0x94ce43b5d02323e1:0xebd55f8208f22fc!8m2'),
+    'ChIJ4SMj0LVDzpQR_CKPIPhVvQ4',
+  )
+  assertEquals(placeIdFromFtid('https://www.google.com/maps/place/X/@1,2,11z'), null)
 })
