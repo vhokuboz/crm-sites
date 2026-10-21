@@ -161,6 +161,7 @@ Deno.serve(async (req) => {
     const handle = instagramUrl ? extractInstagramHandle(instagramUrl) : null
 
     const insert = {
+      status: 'triagem',
       name: place?.displayName?.text ?? (handle ? `@${handle}` : '[PREENCHER]'),
       segment: resolveSegment(place?.primaryType ?? null, place?.primaryTypeDisplayName?.text ?? null),
       address: place?.formattedAddress ?? null,
