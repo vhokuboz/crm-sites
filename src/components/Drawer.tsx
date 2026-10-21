@@ -514,13 +514,15 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
           </div>
 
           <div className="mt-3 flex items-center justify-between">
-            <QuickActions prospect={p} size="md" />
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <QuickActions prospect={p} size="md" />
               <CopiarCobranca
                 prospect={p}
                 onUpdate={onUpdate}
-                className="hit rounded-sm border border-rule px-3 py-2 text-body hover:bg-paper"
+                className="hit rounded-sm border border-deep/40 bg-stage-1 px-3 py-2 text-body text-deep transition-colors hover:bg-deep hover:text-card"
               />
+            </div>
+            <div className="flex items-center gap-2">
               <button
                 onClick={saveText}
                 disabled={!dirty}

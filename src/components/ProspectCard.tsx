@@ -269,19 +269,20 @@ export function ProspectCard({
         )}
 
         {/* Barra quieta: atalhos de link a esquerda, copiar e menu a direita. */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
             <QuickActions prospect={p} max={4} />
           </div>
-          <CopiarCobranca prospect={p} onUpdate={onUpdate} className={SECONDARY} />
+          {/* Cobrança só existe quando o retorno venceu: é a ação do momento, então ganha o destaque. */}
+          <CopiarCobranca
+            prospect={p}
+            onUpdate={onUpdate}
+            className={`${SECONDARY} border-deep/40 bg-stage-1 text-deep hover:bg-deep hover:text-card`}
+          />
           {p.approach_message && (
             <button onClick={copyApproach} aria-label="Copiar mensagem de abordagem" className={SECONDARY}>
               {copied === 'ok' ? <CheckIcon size={14} /> : <ClipboardCopyIcon size={14} />}
-              {copied === 'ok' ? 'Copiado' : copied === 'erro' ? 'Não copiou' : (
-                <>
-                  Copiar<span className="hidden @sm:inline"> mensagem</span>
-                </>
-              )}
+              {copied === 'ok' ? 'Copiado' : copied === 'erro' ? 'Não copiou' : 'Copiar abordagem'}
             </button>
           )}
           {isOpen(p) && (
