@@ -117,6 +117,7 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
   const [editingHeader, setEditingHeader] = useState(false)
   const [notes, setNotes] = useState(p.notes ?? '')
   const [approach, setApproach] = useState(p.approach_message ?? '')
+  const [approachCopied, setApproachCopied] = useState(false)
   const [email, setEmail] = useState(p.email ?? '')
   const [landing, setLanding] = useState(p.landing_page_url ?? '')
   const [whatsapp, setWhatsapp] = useState(p.whatsapp ?? '')
@@ -964,7 +965,25 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
           </div>
           <div role="tabpanel" id="tab-notas" tabIndex={0} aria-labelledby="tabbtn-notas" hidden={tab !== 'notas'} className="space-y-7">
           <section>
-            <h3 className="section-title">Mensagem de abordagem</h3>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="section-title">Mensagem de abordagem</h3>
+              <button
+                type="button"
+                disabled={!approach}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(approach)
+                    setApproachCopied(true)
+                    setTimeout(() => setApproachCopied(false), 1800)
+                  } catch {
+                    window.alert('Não foi possível copiar a mensagem.')
+                  }
+                }}
+                className="hit rounded-sm border border-rule px-2 py-1 text-xs hover:bg-card disabled:opacity-40"
+              >
+                {approachCopied ? 'Copiado' : 'Copiar'}
+              </button>
+            </div>
             <textarea
               value={approach}
               onChange={(e) => setApproach(e.target.value)}
