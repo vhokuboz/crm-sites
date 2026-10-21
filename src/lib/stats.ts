@@ -1,6 +1,13 @@
 import { addDaysISO, readGap, readPresence, todayISO } from './domain.ts'
 import type { Prospect, ProspectStatus } from './database.types.ts'
 
+/** Ganhos já recebidos (entrada + parcela final) dos projetos finalizados. */
+export function finalizedEarnings(ps: Pick<Prospect, 'status' | 'deposit_paid_amount' | 'final_paid_amount'>[]) {
+  const done = ps.filter((p) => p.status === 'finalizado')
+  const total = done.reduce((sum, p) => sum + (p.deposit_paid_amount ?? 0) + (p.final_paid_amount ?? 0), 0)
+  return { count: done.length, total }
+}
+
 /* ------------------------------------------------------------ semanas --- */
 
 /** Data local (AAAA-MM-DD) de um timestamp ou de uma data pura. */

@@ -6,6 +6,7 @@ import {
   DIMENSIONS,
   MIN_SAMPLE,
   conversionBy,
+  finalizedEarnings,
   dimensionKey,
   funnelSummary,
   weekDelta,
@@ -41,6 +42,7 @@ export function Resumo({ prospects, onGoto }: ResumoProps) {
 function Panorama({ prospects, onGoto }: ResumoProps) {
   const queue = buildQueue(prospects)
   const { ativos, pagantes, mrr } = serviceSummary(prospects)
+  const ganhos = finalizedEarnings(prospects)
   const servico = serviceQueue(prospects).length
   const brl = (v: number) => `R$ ${formatBRL(v)}`
 
@@ -51,6 +53,8 @@ function Panorama({ prospects, onGoto }: ResumoProps) {
     ['Clientes no ar', String(ativos)],
     ['Receita mensal', `${brl(mrr)} (${pagantes} pagante${pagantes === 1 ? '' : 's'})`],
     ['A entrar após a isenção', brl(futureFee(prospects))],
+    ['Projetos finalizados', String(ganhos.count)],
+    ['Ganhos dos finalizados', brl(ganhos.total)],
   ]
 
   return (

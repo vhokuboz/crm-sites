@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { conversionBy, dimensionKey, funnelSummary, wasContacted, weekStartISO, weeklyCounts, toLocalISO } from './stats.ts'
+import { conversionBy, finalizedEarnings, dimensionKey, funnelSummary, wasContacted, weekStartISO, weeklyCounts, toLocalISO } from './stats.ts'
 import type { Prospect } from './database.types.ts'
 
 const fake = (o: Partial<Prospect>): Prospect =>
@@ -90,4 +90,13 @@ test('funnelSummary - descartados a parte, contatados incluem perdidos', () => {
     fake({ status: 'finalizado' }),
   ])
   assert.deepEqual(s, { total: 4, discarded: 1, contacted: 2, lost: 1, won: 1 })
+})
+
+test('finalizedEarnings - soma entrada e final só de quem está finalizado', () => {
+  const r = finalizedEarnings([
+    fake({ status: 'finalizado', deposit_paid_amount: 462.5, final_paid_amount: 1387.5 }),
+    fake({ status: 'finalizado', deposit_paid_amount: null, final_paid_amount: null }),
+    fake({ status: 'aguardando_pagamento', deposit_paid_amount: 0, final_paid_amount: 340 }),
+  ])
+  assert.deepEqual(r, { count: 2, total: 1850 })
 })
