@@ -71,24 +71,28 @@ async function findPlace(googleMapsUrl: string) {
     )
   }
 
-  const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': PLACES_API_KEY!,
-      'X-Goog-FieldMask': FIELD_MASK,
-    },
-    body: JSON.stringify({
-      textQuery: loc.name,
-      languageCode: 'pt-BR',
-      locationBias: { circle: { center: { latitude: loc.lat, longitude: loc.lng }, radius: 200 } },
-    }),
-  })
-  if (!res.ok) throw new Error(`Places API (busca) falhou: ${res.status} ${await res.text()}`)
-  const data = await res.json()
-  const place = data.places?.[0]
-  if (!place) throw new Error(`Nenhum resultado do Places API para "${loc.name}".`)
-  return place
+  // Primeiro o pino do local; se não achar, o centro do mapa (`@`), como antes.
+  const points = [{ lat: loc.lat, lng: loc.lng }, loc.center]
+  for (const [n, p] of points.entries()) {
+    if (n > 0 && p.lat === points[0].lat && p.lng === points[0].lng) break
+    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': PLACES_API_KEY!,
+        'X-Goog-FieldMask': FIELD_MASK,
+      },
+      body: JSON.stringify({
+        textQuery: loc.name,
+        languageCode: 'pt-BR',
+        locationBias: { circle: { center: { latitude: p.lat, longitude: p.lng }, radius: 200 } },
+      }),
+    })
+    if (!res.ok) throw new Error(`Places API (busca) falhou: ${res.status} ${await res.text()}`)
+    const place = (await res.json()).places?.[0]
+    if (place) return place
+  }
+  throw new Error(`Nenhum resultado do Places API para "${loc.name}".`)
 }
 
 Deno.serve(async (req) => {

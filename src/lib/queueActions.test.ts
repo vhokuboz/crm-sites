@@ -52,11 +52,11 @@ test('canContact - triagem nao registra contato; as demais etapas sim', () => {
 
 test('cobrancaMessage - singular usa o primeiro nome, plural usa o nome do espaço', () => {
   const url = 'https://x.example'
-  const s = cobrancaMessage({ name: 'Guilherme Montanari', tratamento: 'singular', landing_page_url: url })
-  assert.ok(s.startsWith('Olá, Guilherme! Aqui é o Vitor Okubo'))
+  const s = cobrancaMessage({ name: 'Guilherme Montanari', city: 'Lins/SP', tratamento: 'singular', landing_page_url: url })
+  assert.ok(s.startsWith('Olá, Guilherme! Aqui é o Vitor Okubo, de Lins. '))
   assert.ok(s.includes(`${url}\n`) && s.includes('com o seu nome'))
-  const pl = cobrancaMessage({ name: 'Espaço Wallon', tratamento: 'plural', landing_page_url: url })
-  assert.ok(pl.startsWith('Olá! Aqui é'))
+  const pl = cobrancaMessage({ name: 'Espaço Wallon', city: '', tratamento: 'plural', landing_page_url: url })
+  assert.ok(pl.startsWith('Olá! Aqui é o Vitor Okubo. '))
   assert.ok(pl.includes('para Espaço Wallon'))
 })
 

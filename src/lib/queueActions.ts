@@ -44,16 +44,18 @@ export function canCopyCobranca(p: Pick<Prospect, 'status' | 'next_action_at' | 
 }
 
 /** Mensagem de follow-up por substituição de variáveis: singular usa o primeiro nome, plural o nome do espaço. */
-export function cobrancaMessage(p: Pick<Prospect, 'name' | 'tratamento' | 'landing_page_url'>): string {
+export function cobrancaMessage(p: Pick<Prospect, 'name' | 'city' | 'tratamento' | 'landing_page_url'>): string {
+  const cidade = p.city.split('/')[0].trim()
+  const origem = cidade ? `, de ${cidade}` : ''
   const aviso = 'Há alguns dias deixei uma mensagem por aqui e imagino que tenha se perdido no meio das outras. 😊'
   if (p.tratamento === 'plural')
-    return `Olá! Aqui é o Vitor Okubo, de Bauru. ${aviso}
+    return `Olá! Aqui é o Vitor Okubo${origem}. ${aviso}
 
 Resumindo: montei por conta própria uma amostra de página para ${p.name}, para vocês verem como o espaço pode aparecer na internet e receber contatos pelo WhatsApp:
 ${p.landing_page_url}
 
 Se der, dê uma olhada e me diga o que acharam. Sem compromisso! Se preferirem, também posso explicar por aqui ou por telefone.`
-  return `Olá, ${p.name.split(' ')[0]}! Aqui é o Vitor Okubo, de Bauru. ${aviso}
+  return `Olá, ${p.name.split(' ')[0]}! Aqui é o Vitor Okubo${origem}. ${aviso}
 
 Resumindo: montei por conta própria uma amostra de página com o seu nome, para você ver como seu trabalho pode aparecer na internet e receber contatos pelo WhatsApp:
 ${p.landing_page_url}

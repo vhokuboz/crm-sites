@@ -15,10 +15,15 @@ export function extractNameAndLocation(
 ): { name: string; lat: number; lng: number } | null {
   const m = url.match(/\/maps\/place\/([^/]+)\/@(-?\d+\.\d+),(-?\d+\.\d+)/)
   if (!m) return null
+  // O `@lat,lng` é o centro do mapa na tela (pode estar a km do local, conforme
+  // o zoom); a posição real do local vem em `!3d<lat>!4d<lng>`.
+  const pin = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)
   return {
     name: decodeURIComponent(m[1].replace(/\+/g, ' ')),
-    lat: Number(m[2]),
-    lng: Number(m[3]),
+    lat: Number(pin ? pin[1] : m[2]),
+    lng: Number(pin ? pin[2] : m[3]),
+    // centro do mapa (`@`), mantido como segunda tentativa de busca
+    center: { lat: Number(m[2]), lng: Number(m[3]) },
   }
 }
 
