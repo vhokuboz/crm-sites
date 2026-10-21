@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { OnUpdate } from '../lib/useProspects'
 import type { Prospect, ProspectStatus, ProspectUpdate } from '../lib/database.types'
 import {
@@ -54,6 +54,8 @@ import { CopiarCobranca } from './CopiarCobranca'
 
 type Props = {
   prospect: Prospect
+  /** Base inteira: alimenta as sugestões de segmento e cidade. */
+  prospects: Prospect[]
   onUpdate: OnUpdate
   onReload: () => Promise<void>
   onClose: () => void
@@ -108,11 +110,20 @@ const DRAWER_TABS = [
 ] as const
 type DrawerTab = (typeof DRAWER_TABS)[number][0]
 
-export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
+export function Drawer({ prospect: p, prospects, onUpdate, onReload, onClose }: Props) {
   const panel = useRef<HTMLDivElement>(null)
   const [name, setName] = useState(p.name)
   const [segment, setSegment] = useState(p.segment)
   const [city, setCity] = useState(p.city)
+  // Valores já usados na base, do mais frequente ao menos, pra padronizar a digitação.
+  const suggestions = useMemo(() => {
+    const top = (pick: (x: Prospect) => string) => {
+      const counts = new Map<string, number>()
+      for (const x of prospects) if (pick(x).trim()) counts.set(pick(x), (counts.get(pick(x)) ?? 0) + 1)
+      return [...counts].sort((a, b) => b[1] - a[1]).map(([v]) => v)
+    }
+    return { segments: top((x) => x.segment), cities: top((x) => x.city) }
+  }, [prospects])
   const [tab, setTab] = useState<DrawerTab>('resumo')
   const [editingHeader, setEditingHeader] = useState(false)
   const [notes, setNotes] = useState(p.notes ?? '')
@@ -445,18 +456,26 @@ export function Drawer({ prospect: p, onUpdate, onReload, onClose }: Props) {
             <div className="min-w-0 flex-1">
               {editingHeader ? (
                 <div className="space-y-1.5">
+                  <datalist id="drawer-segments">
+                    {suggestions.segments.map((v) => <option key={v} value={v} />)}
+                  </datalist>
+                  <datalist id="drawer-cities">
+                    {suggestions.cities.map((v) => <option key={v} value={v} />)}
+                  </datalist>
                   <div className="flex gap-1.5">
                     <input
                       autoFocus
                       value={segment}
                       onChange={(e) => setSegment(e.target.value)}
                       placeholder="Segmento"
+                      list="drawer-segments"
                       className="w-1/2 min-w-0 rounded-sm border border-rule bg-card px-2 py-1.5 text-body"
                     />
                     <input
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="Cidade"
+                      list="drawer-cities"
                       className="w-1/2 min-w-0 rounded-sm border border-rule bg-card px-2 py-1.5 text-body"
                     />
                   </div>

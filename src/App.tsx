@@ -166,7 +166,7 @@ function Crm({ email }: { email: string }) {
 
       <Suspense fallback={null}>
         {selected && (
-          <Drawer prospect={selected} onUpdate={update} onReload={reload} onClose={() => setOpen(null)} />
+          <Drawer prospect={selected} prospects={prospects} onUpdate={update} onReload={reload} onClose={() => setOpen(null)} />
         )}
 
         {adding && <AddProspectModal onCreated={handleCreated} onClose={() => setAdding(false)} />}
