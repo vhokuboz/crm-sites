@@ -195,10 +195,17 @@ export function Drawer({ prospect: p, prospects, onUpdate, onReload, onClose }: 
   }
   const confirmCloseRef = useRef(confirmClose)
   confirmCloseRef.current = confirmClose
+  const saveTextRef = useRef<() => Promise<void>>(async () => {})
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && previewIndex === null && !contractModalOpen && !discardOpen && !serviceModalOpen) confirmCloseRef.current()
+      if (previewIndex !== null || contractModalOpen || discardOpen || serviceModalOpen) return
+      if (e.key === 'Escape') confirmCloseRef.current()
+      // Ctrl/Cmd+Enter = clicar em Salvar (inclusive de dentro de um textarea); a ficha segue aberta.
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !e.repeat && dirtyRef.current) {
+        e.preventDefault()
+        void saveTextRef.current()
+      }
     }
     document.addEventListener('keydown', onKey)
     panel.current?.focus()
@@ -420,6 +427,7 @@ export function Drawer({ prospect: p, prospects, onUpdate, onReload, onClose }: 
       setTimeout(() => setSaved(false), 1800)
     }
   }
+  saveTextRef.current = saveText
 
   const wa = whatsappUrl(p, p.approach_message)
   const ig = instagramUrl(p.instagram)
