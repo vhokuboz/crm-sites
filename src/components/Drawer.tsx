@@ -7,9 +7,9 @@ import {
   RISK_LABEL,
   RISK_TONE,
   STATUS_LABEL,
-  addBusinessDaysISO,
-  addDaysISO,
+  MAX_COBRANCAS,
   canDiscard,
+  discardPatch,
   facebookHandle,
   facebookUrl,
   formatBRL,
@@ -26,6 +26,7 @@ import {
   websiteUrl,
   whatsappUrl,
 } from '../lib/domain'
+import { repeatPatch, snoozePatch } from '../lib/queueActions'
 import { buildContractFieldMap, type ContractFormValues } from '../lib/contract'
 import {
   SERVICE_LABEL,
@@ -316,11 +317,7 @@ export function Drawer({ prospect: p, prospects, onUpdate, onReload, onClose }: 
 
   /** Fecha a ficha junto se o descarte for confirmado -- não sobra ficha aberta de um prospect morto. */
   async function handleDiscard(note: string) {
-    const ok = await onUpdate(p.id, {
-      status: 'descartado',
-      next_action_at: null,
-      notes: note ? (p.notes ? `${p.notes}\n\n${note}` : note) : p.notes,
-    })
+    const ok = await onUpdate(p.id, discardPatch(p, note))
     if (ok) onClose()
   }
 
@@ -618,19 +615,16 @@ export function Drawer({ prospect: p, prospects, onUpdate, onReload, onClose }: 
             </Field>
           </section>
 
-          {(p.status === 'contatado' || p.status === 'aguardando_pendencias') && (
+          {((p.status === 'contatado' && p.contact_attempts < MAX_COBRANCAS) || p.status === 'aguardando_pendencias') && (
             <section>
               <h3 className="section-title">Cobrei de novo</h3>
               <button
                 type="button"
                 onClick={() => {
                   if (p.status === 'contatado') {
-                    void onUpdate(p.id, {
-                      next_action_at: addBusinessDaysISO(3),
-                      contact_attempts: p.contact_attempts + 1,
-                    }, 'Nova cobrança registrada')
+                    void onUpdate(p.id, repeatPatch(p), 'Nova cobrança registrada')
                   } else {
-                    void onUpdate(p.id, { next_action_at: addDaysISO(2) })
+                    void onUpdate(p.id, snoozePatch(2))
                   }
                 }}
                 className="rounded-sm border border-rule px-3 py-1.5 text-body hover:bg-card"
@@ -639,7 +633,7 @@ export function Drawer({ prospect: p, prospects, onUpdate, onReload, onClose }: 
               </button>
               {p.status === 'contatado' && (
                 <p className="mt-1.5 text-xs text-muted">
-                  {p.contact_attempts} tentativa{p.contact_attempts === 1 ? '' : 's'}
+                  {p.contact_attempts}/{MAX_COBRANCAS} cobranças
                 </p>
               )}
             </section>

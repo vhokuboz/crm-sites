@@ -21,11 +21,13 @@ test('contactPatch - depois do contato soma 3 dias e mantém o status', () => {
   assert.equal(patch.next_action_at, addDaysISO(3))
 })
 
-test('canRepeat - só contatado com retorno vencido ou de hoje', () => {
-  assert.equal(canRepeat({ status: 'contatado', next_action_at: addDaysISO(-1) }), true)
-  assert.equal(canRepeat({ status: 'contatado', next_action_at: addDaysISO(2) }), false)
-  assert.equal(canRepeat({ status: 'prototipado', next_action_at: addDaysISO(-1) }), false)
-  assert.equal(canRepeat({ status: 'contatado', next_action_at: null }), false)
+test('canRepeat - só contatado com retorno vencido ou de hoje e cobranças sobrando', () => {
+  assert.equal(canRepeat({ status: 'contatado', next_action_at: addDaysISO(-1), contact_attempts: 0 }), true)
+  assert.equal(canRepeat({ status: 'contatado', next_action_at: addDaysISO(-1), contact_attempts: 1 }), true)
+  assert.equal(canRepeat({ status: 'contatado', next_action_at: addDaysISO(-1), contact_attempts: 2 }), false)
+  assert.equal(canRepeat({ status: 'contatado', next_action_at: addDaysISO(2), contact_attempts: 0 }), false)
+  assert.equal(canRepeat({ status: 'prototipado', next_action_at: addDaysISO(-1), contact_attempts: 0 }), false)
+  assert.equal(canRepeat({ status: 'contatado', next_action_at: null, contact_attempts: 0 }), false)
 })
 
 test('repeatPatch - soma tentativa e agenda 3 dias úteis', () => {
@@ -61,7 +63,7 @@ test('cobrancaMessage - singular usa o primeiro nome, plural usa o nome do espa�
 })
 
 test('canCopyCobranca - exige retorno vencido, tratamento e link', () => {
-  const ok = { status: 'contatado' as const, next_action_at: addDaysISO(-1), tratamento: 'plural' as const, landing_page_url: 'u' }
+  const ok = { status: 'contatado' as const, next_action_at: addDaysISO(-1), contact_attempts: 0, tratamento: 'plural' as const, landing_page_url: 'u' }
   assert.equal(canCopyCobranca(ok), true)
   assert.equal(canCopyCobranca({ ...ok, next_action_at: addDaysISO(2) }), false)
   assert.equal(canCopyCobranca({ ...ok, tratamento: null }), false)

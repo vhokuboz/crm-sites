@@ -11,6 +11,9 @@ import {
   daysBetweenISO,
   readyToSend,
   statusTransitionPatch,
+  canEnterContatado,
+  discardPatch,
+  isCobrancaExpirada,
 } from './domain.ts'
 import type { Prospect } from './database.types.ts'
 
@@ -218,4 +221,28 @@ test('buildQueue - proposta ordena por data de retorno, sem data por último', (
     ready({ id: 'velho', next_action_at: addDaysISO(-5) }),
   ])
   assert.deepEqual(q.proposal.map((p) => p.id), ['velho', 'hoje', 'sem'])
+})
+
+test('statusTransitionPatch - entrar em contatado zera as cobranças', () => {
+  const previous = { ...fakeProspect('prototipado'), contact_attempts: 1 } as Prospect
+  assert.equal(statusTransitionPatch(previous, { status: 'contatado' }).contact_attempts, 0)
+})
+
+test('canEnterContatado - só quem ainda não passou de contatado', () => {
+  for (const s of ['novo', 'triagem', 'prototipado', 'contatado']) assert.equal(canEnterContatado({ status: s as Prospect['status'] }), true, s)
+  for (const s of ['briefing', 'finalizado', 'perdido', 'descartado']) assert.equal(canEnterContatado({ status: s as Prospect['status'] }), false, s)
+})
+
+test('isCobrancaExpirada - 2 cobranças e retorno já passado', () => {
+  const base = { status: 'contatado', contact_attempts: 2, next_action_at: addDaysISO(-1) } as const
+  assert.equal(isCobrancaExpirada(base), true)
+  assert.equal(isCobrancaExpirada({ ...base, next_action_at: addDaysISO(0) }), false)
+  assert.equal(isCobrancaExpirada({ ...base, contact_attempts: 1 }), false)
+  assert.equal(isCobrancaExpirada({ ...base, status: 'briefing' }), false)
+  assert.equal(isCobrancaExpirada({ ...base, next_action_at: null }), false)
+})
+
+test('discardPatch - anexa a nota às notas existentes', () => {
+  assert.deepEqual(discardPatch({ notes: 'a' }, 'b'), { status: 'descartado', next_action_at: null, notes: 'a\n\nb' })
+  assert.equal(discardPatch({ notes: null }, '').notes, null)
 })

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
-import { closesHostedSite, statusTransitionPatch } from './domain'
+import { canEnterContatado, closesHostedSite, discardPatch, isCobrancaExpirada, statusTransitionPatch } from './domain'
 import { serviceStartPatch } from './service'
 import type { Prospect, ProspectUpdate } from './database.types'
 
@@ -56,6 +56,10 @@ export function useProspects() {
    */
   const write = useCallback(async (id: string, patch: ProspectUpdate): Promise<WriteResult> => {
     const previous = ref.current.find((p) => p.id === id)
+    if (previous && patch.status === 'contatado' && !canEnterContatado(previous)) {
+      setState((s) => ({ ...s, error: `"${previous.name}" já passou de Contatado e não pode voltar.` }))
+      return { ok: false, revert: null, hosted: false }
+    }
     const hosted = !!previous && closesHostedSite(previous, patch)
 
     if (previous && hosted) {
@@ -158,6 +162,17 @@ export function useProspects() {
     },
     [write, showToast],
   )
+
+  // Descarte automático: roda uma vez, quando a primeira carga termina. Só vale com o CRM aberto.
+  const swept = useRef(false)
+  useEffect(() => {
+    if (state.loading || swept.current) return
+    swept.current = true
+    const items = state.prospects
+      .filter(isCobrancaExpirada)
+      .map((p) => ({ id: p.id, patch: discardPatch(p, 'Descartado automaticamente: sem resposta após 2 cobranças.') }))
+    if (items.length > 0) void updateMany(items, 'Descartados sem resposta')
+  }, [state.loading, state.prospects, updateMany])
 
   const dismissError = useCallback(() => {
     setState((s) => ({ ...s, error: null }))

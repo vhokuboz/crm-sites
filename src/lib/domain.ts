@@ -469,6 +469,34 @@ export function isOpen(p: Prospect): boolean {
   return !['finalizado', 'perdido', 'descartado'].includes(p.status)
 }
 
+/** Cobranças permitidas em `contatado`; esgotadas e com o retorno vencido, o prospect é descartado. */
+export const MAX_COBRANCAS = 2
+
+/** Quem já passou de `contatado` (ou foi encerrado) não volta a ele -- a contagem de cobranças recomeçaria. */
+export function canEnterContatado(p: Pick<Prospect, 'status'>): boolean {
+  const i = FUNNEL.indexOf(p.status) // -1 = perdido/descartado
+  return i !== -1 && i <= FUNNEL.indexOf('contatado')
+}
+
+/** Sem resposta: cobranças esgotadas e o retorno da última já passou (vencido há pelo menos 1 dia). */
+export function isCobrancaExpirada(p: Pick<Prospect, 'status' | 'contact_attempts' | 'next_action_at'>): boolean {
+  return (
+    p.status === 'contatado' &&
+    p.contact_attempts >= MAX_COBRANCAS &&
+    !!p.next_action_at &&
+    daysFromToday(p.next_action_at) < 0
+  )
+}
+
+/** Descarte: sai da fila e anexa a nota (se houver) às notas do prospect. */
+export function discardPatch(p: Pick<Prospect, 'notes'>, note: string): ProspectUpdate {
+  return {
+    status: 'descartado',
+    next_action_at: null,
+    notes: note ? (p.notes ? `${p.notes}\n\n${note}` : note) : p.notes,
+  }
+}
+
 /** Descartar só faz sentido depois que já houve contato, e não dá pra descartar duas vezes. */
 export function canDiscard(p: Prospect): boolean {
   return !['novo', 'triagem', 'prototipado', 'perdido', 'descartado'].includes(p.status)
@@ -502,7 +530,10 @@ export function statusTransitionPatch(
 ): ProspectUpdate {
   if (!patch.status || patch.status === previous.status) return patch
   const extra: ProspectUpdate = {}
-  if (patch.status === 'contatado') extra.next_action_at = addBusinessDaysISO(3)
+  if (patch.status === 'contatado') {
+    extra.next_action_at = addBusinessDaysISO(3)
+    extra.contact_attempts = 0
+  }
   if (patch.status === 'aguardando_pendencias') extra.next_action_at = addDaysISO(2)
   if (previous.status === 'em_analise' && patch.status === 'refinamento') {
     extra.revision_count = previous.revision_count + 1

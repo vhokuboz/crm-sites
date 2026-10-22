@@ -1,4 +1,4 @@
-import { addBusinessDaysISO, addDaysISO, daysFromToday } from './domain.ts'
+import { MAX_COBRANCAS, addBusinessDaysISO, addDaysISO, daysFromToday } from './domain.ts'
 import type { Prospect, ProspectUpdate } from './database.types.ts'
 
 /** Adiar um prospect: a nova data de retorno, a partir de hoje. */
@@ -29,9 +29,14 @@ export function contactPatch(p: Pick<Prospect, 'status'>, now = new Date()): Pro
   }
 }
 
-/** "Cobrei de novo": só faz sentido para quem já foi contatado e está com o retorno vencido. */
-export function canRepeat(p: Pick<Prospect, 'status' | 'next_action_at'>): boolean {
-  return p.status === 'contatado' && !!p.next_action_at && daysFromToday(p.next_action_at) <= 0
+/** "Cobrei de novo": só faz sentido para quem já foi contatado, com o retorno vencido e cobranças sobrando. */
+export function canRepeat(p: Pick<Prospect, 'status' | 'next_action_at' | 'contact_attempts'>): boolean {
+  return (
+    p.status === 'contatado' &&
+    p.contact_attempts < MAX_COBRANCAS &&
+    !!p.next_action_at &&
+    daysFromToday(p.next_action_at) <= 0
+  )
 }
 
 export function repeatPatch(p: Pick<Prospect, 'contact_attempts'>): ProspectUpdate {
@@ -39,7 +44,7 @@ export function repeatPatch(p: Pick<Prospect, 'contact_attempts'>): ProspectUpda
 }
 
 /** Botão "Copiar cobrança": contatado com retorno vencido e já classificado como singular/plural. */
-export function canCopyCobranca(p: Pick<Prospect, 'status' | 'next_action_at' | 'tratamento' | 'landing_page_url'>): boolean {
+export function canCopyCobranca(p: Pick<Prospect, 'status' | 'next_action_at' | 'contact_attempts' | 'tratamento' | 'landing_page_url'>): boolean {
   return canRepeat(p) && !!p.tratamento && !!p.landing_page_url
 }
 
